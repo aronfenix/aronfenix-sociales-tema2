@@ -191,7 +191,7 @@ M.escena(3, (E) => {
   };
 });
 
-// ───────── Escena 4: España, 48 millones, representantes ─────────
+// ───────── Escena 4: España, 49 millones, representantes ─────────
 M.escena(4, (E) => {
   const g = E.g;
   const caja = { x: 30, y: 40, w: 700, h: 600 };
@@ -243,7 +243,7 @@ M.escena(4, (E) => {
   const urna = M.icono('urna', g, { papeletas: 3 });
   const papel = M.icono('papeleta', g);
   const rElec = M.rotulo(g, 'Elecciones', { tam: 36, fondo: C.estado });
-  const tEsp = E.m('España'), t48 = E.m('48 millones'), tNo = E.m('No podemos'), tEle = E.m('elegimos a unas'), tRep = E.m('representantes'), tVot = E.m('votando');
+  const tEsp = E.m('España'), t48 = E.m('49 millones'), tNo = E.m('No podemos'), tEle = E.m('elegimos a unas'), tRep = E.m('representantes'), tVot = E.m('votando');
   return (t, d) => {
     // zoom: del barrio a toda España
     const z = M.e(t, 0.3, Math.max(1.6, t48 - 0.5), 'inOutCubic');
@@ -261,7 +261,7 @@ M.escena(4, (E) => {
     });
     estrellas.forEach((e, k) => M.pon(e.s, { x: e.p.x + 9, y: e.p.y - 22, s: M.e(t, tRep + k * 0.05, 0.4, 'outBack'), o: t > tRep ? 1 : 0 }));
     // contador
-    const v = M.contador(t, t48 - 0.3, 2.2, 0, 48000000);
+    const v = M.contador(t, t48 - 0.3, 2.2, 0, 49000000);
     M.ponTexto(num, M.num(v));
     M.ponAp(cont, { x: 1005, y: 170, o: 1 - M.e(t, tEle - 0.2, 0.5) * 0.0 }, M.aparicion(t, t48 - 0.5, 0.5));
     M.ponAp(noCab, { x: 1005, y: 380, o: 1 - M.e(t, tEle, 0.4) }, M.aparicion(t, tNo, 0.5));

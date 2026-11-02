@@ -148,7 +148,7 @@ M.escena(1, (E) => {
   M.el('path', { d: 'M-150,-34 L-170,-82 M150,-34 L170,-82', stroke: K, 'stroke-width': 3 }, cartel);
   const rCartel = M.rotulo(cartel, 'Colegio electoral', { tam: 42, fondo: C.estado, borde: K, grosor: 4, pad: 30 });
   // gente que entra
-  const tLlenos = E.m('estarán llenos');
+  const tLlenos = E.m('abrirán sus puertas');
   const P = 6.6, W = 5.0;
   const walkers = M.gente(11, 404).map((o, i) => ({ el: M.persona(cam, o), lado: i % 2 ? 1 : -1, t0: i < 2 ? 0.15 + i * 1.4 : tLlenos - 0.6 + (i - 2) * 0.62, carril: i % 3 }));
   // calendario, sin clase
@@ -166,7 +166,7 @@ M.escena(1, (E) => {
   const voto = M.icono('papeleta', g);
   const A = [1070, 430], Q = [900, 300], B = [640, 540];
   const camino = M.flecha(g, { x1: A[0], y1: A[1], x2: B[0] + 40, y2: B[1] - 20, curva: -70, color: C.estado, grosor: 6, discontinua: true });
-  const tDom = E.m('domingo 29'), tClase = E.m('no tendrán clase'), tElec = E.m('colegios electorales'), tGen = E.m('elecciones generales');
+  const tDom = E.m('domingo 29'), tClase = E.m('no para dar clase'), tElec = E.m('colegios electorales'), tGen = E.m('elecciones generales');
   const tCong = E.m('el Congreso'), tSen = E.m('el Senado'), tCam = E.m('camino de un voto');
   return (t, d) => {
     M.camara(cam, t, d, { hasta: 1.04, cy: 560 });
