@@ -82,7 +82,7 @@
    "escenas": 12,
    "duracion": 198.62,
    "cabecera": 3,
-   "generado": "2026-11-02T16:12:36.212Z"
+   "generado": "2026-11-02T16:32:54.555Z"
   },
   "3": {
    "estimado": false,
@@ -106,7 +106,7 @@
    "escenas": 10,
    "duracion": 166.88,
    "cabecera": 3,
-   "generado": "2026-11-02T16:21:02.463Z"
+   "generado": "2026-11-02T16:35:49.925Z"
   }
  },
  "_nota": "Inicio (s) de cada escena en el MP4, incluida la cabecera de 3 s. Lo escribe produccion/motor-video/render.js. Si _info.N.estimado es true, las duraciones son estimadas (faltan audios) y cambiarán al renderizar con los audios reales."

@@ -267,6 +267,8 @@ img, svg { max-width: 100%; }
 }
 .hueco:not(.lleno)::after { content: ''; display: block; width: 100%; }
 .hueco .ficha { font-size: 1.05rem; }
+.hueco-pegado { white-space: nowrap; }
+.hueco-pegado .hueco .ficha { white-space: normal; }
 .hueco-escrito {
   font: inherit; font-weight: 800; color: var(--tinta);
   width: 9em; min-height: 52px; padding: .2em .5em; margin: 0 .2em; vertical-align: middle;

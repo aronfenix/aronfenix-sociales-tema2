@@ -802,7 +802,7 @@ M.escena(9, (E) => {
   const rFed = M.rotulo(fB, 'FEDER', { tam: 46, fondo: UE, pad: 26 });
   const nina = M.persona(fB, { ...M.gente(1, 12)[0], edad: 'nino', peinado: 'coleta', ropa: M.ROPA[7] });
   const lupa = M.icono('lupaV5', fB);
-  const rRet = M.g(fB); const rr = M.rotulo(rRet, 'Reto: ¡busca este cartel!', { tam: 40, fondo: K, pad: 30 }); M.pon(M.icono('lupaV5', rRet), { x: -rr.ancho / 2 - 14, s: 0.6 });
+  const rRet = M.g(fB); const rr = M.rotulo(rRet, 'Reto: ¡busca este cartel!', { tam: 40, fondo: K, pad: 30 }); M.pon(M.icono('lupaV5', rRet), { x: -rr.ancho / 2 - 40, s: 0.6 });
   return (t, d) => {
     const salA = fuera(t, tFed - 0.6, 0.45);
     M.pon(fA, { o: salA });

@@ -113,7 +113,7 @@
            "El Tribunal {Constitucional} comprueba que las leyes respetan la Constitución."
          ],
          "banco": ["Cortes", "rey", "reina", "gobierna", "Constitucional", "Supremo"],
-         "escenas": [6, 8], "explicacion": "El rey es el jefe del Estado, pero no gobierna; el Tribunal Constitucional vigila las leyes."},
+         "escenas": [3, 6, 8], "explicacion": "El rey es el jefe del Estado, pero no gobierna; el Tribunal Constitucional vigila las leyes."},
         {"id": "v3q5", "tipo": "numeros", "enunciado": "Responde con un número.",
          "campos": [{"etiqueta": "¿Cuántos diputados tiene el Congreso?", "respuesta": 350}],
          "escenas": [3], "explicacion": "El Congreso tiene 350 diputados."}

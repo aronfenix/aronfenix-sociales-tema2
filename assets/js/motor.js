@@ -521,8 +521,16 @@
           ? el('span', { class: 'hueco', 'data-destino': 'h' + k, 'data-hueco': k, tabindex: '0', role: 'button', 'aria-label': 'Hueco ' + (k + 1) })
           : el('input', { class: 'hueco-escrito', type: 'text', 'data-hueco': k, autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': 'Hueco ' + (k + 1) });
         huecos.push(h);
-        li.appendChild(h);
         ultimo = re.lastIndex;
+        // si tras el hueco viene un signo de puntuación, va pegado (que no salte solo a la línea siguiente)
+        var signo = /^[.,;:!?…»)]+/.exec(frase.slice(ultimo));
+        if (signo) {
+          var pegado = el('span', { class: 'hueco-pegado' });
+          pegado.appendChild(h);
+          pegado.appendChild(document.createTextNode(signo[0]));
+          li.appendChild(pegado);
+          ultimo += signo[0].length;
+        } else li.appendChild(h);
       }
       li.appendChild(document.createTextNode(frase.slice(ultimo)));
       lista.appendChild(li);

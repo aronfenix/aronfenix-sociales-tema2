@@ -7,7 +7,7 @@
  * Para forzar una limpieza tras cambios grandes, sube el número de VERSION.
  */
 'use strict';
-var VERSION = 'v1';
+var VERSION = 'v2';
 var CACHE = 'sociales5-tema2-' + VERSION;
 var BASICOS = [
   './', 'index.html', 'leccion.html', 'repaso.html',
