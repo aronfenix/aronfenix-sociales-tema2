@@ -1,0 +1,113 @@
+{
+ "1": [
+  3,
+  14.71,
+  27.56,
+  38.77,
+  55.7,
+  64.46,
+  98.53,
+  137.09,
+  158.1,
+  180.74,
+  200.93,
+  230.1,
+  246.62
+ ],
+ "2": [
+  3,
+  18.79,
+  35.72,
+  46.93,
+  62.23,
+  86.09,
+  100.57,
+  116.27,
+  137.69,
+  152.17,
+  171.13,
+  195.41
+ ],
+ "3": [
+  3,
+  21.24,
+  35.31,
+  54.28,
+  75.29,
+  89.77,
+  102.61,
+  120.76,
+  140.54,
+  158.7
+ ],
+ "4": [
+  3,
+  21.65,
+  39.8,
+  54.69,
+  74.47,
+  94.26,
+  108.32,
+  129.33,
+  150.34,
+  175.84,
+  186.64,
+  208.88,
+  223.35
+ ],
+ "5": [
+  3,
+  22.06,
+  38.17,
+  57.95,
+  69.57,
+  83.24,
+  120.16,
+  141.99,
+  150.34,
+  170.12
+ ],
+ "_info": {
+  "1": {
+   "estimado": true,
+   "audiosReales": 0,
+   "escenas": 13,
+   "duracion": 275.93,
+   "cabecera": 3,
+   "generado": "2026-11-02T11:18:51.573Z"
+  },
+  "2": {
+   "estimado": true,
+   "audiosReales": 0,
+   "escenas": 12,
+   "duracion": 221.46,
+   "cabecera": 3,
+   "generado": "2026-11-02T11:22:59.856Z"
+  },
+  "3": {
+   "estimado": true,
+   "audiosReales": 0,
+   "escenas": 10,
+   "duracion": 182.3,
+   "cabecera": 3,
+   "generado": "2026-11-02T11:26:18.225Z"
+  },
+  "4": {
+   "estimado": true,
+   "audiosReales": 0,
+   "escenas": 13,
+   "duracion": 245.32,
+   "cabecera": 3,
+   "generado": "2026-11-02T11:30:49.479Z"
+  },
+  "5": {
+   "estimado": true,
+   "audiosReales": 0,
+   "escenas": 10,
+   "duracion": 198.21,
+   "cabecera": 3,
+   "generado": "2026-11-02T11:34:12.190Z"
+  }
+ },
+ "_nota": "Inicio (s) de cada escena en el MP4, incluida la cabecera de 3 s. Lo escribe produccion/motor-video/render.js. Si _info.N.estimado es true, las duraciones son estimadas (faltan audios) y cambiarán al renderizar con los audios reales."
+}

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Vídeo 3 · Los tres poderes</title>
+<link rel="stylesheet" href="../motor-video/comun.css">
+</head>
+<body>
+<script src="../motor-video/comun.js"></script>
+<script src="../motor-video/iconos.js"></script>
+<script src="../motor-video/datos/v3.js"></script>
+<script>
+'use strict';
+const C = M.C;
+const ap = (el, base, t, t0, tipo = 'pop', dur = 0.55) => M.ponAp(el, base, M.aparicion(t, t0, dur, tipo));
+/** Coloca una persona con los pies en (x, pies). */
+const ponP = (el, x, pies, s = 1, extra = {}) => M.pon(el, { x, y: pies - 50 * s, s, ...extra });
+const bamboleo = (t, i) => ({ dy: M.onda(t, 1.7 + (i % 3) * 0.23, 2.2, i * 1.3), r: M.onda(t, 2.9 + (i % 2) * 0.5, 1.3, i * 2.1) });
+/** Aparece en t0 y desaparece del todo en t1. */
+const apFuera = (el, base, t, t0, t1, tipo = 'pop', dur = 0.5) => M.ponAp(el, { ...base, o: (base.o === undefined ? 1 : base.o) * (1 - M.e(t, t1, 0.4)) }, M.aparicion(t, t0, dur, tipo));
+
+// ───────── Colores de los tres poderes (no coinciden con los de los niveles) ─────────
+const LEG = '#7461B0', EJE = '#D06A1C', JUD = '#2E86AB';
+const TOGA = '#34374F';
+const TR = (w = 3.5, c = C.tinta) => `stroke="${c}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+const TXT = (s, x, y, tam, color, peso = 900) => `<text x="${x}" y="${y}" font-size="${tam}" font-weight="${peso}" fill="${color}" text-anchor="middle" dominant-baseline="central" font-family="Nunito">${s}</text>`;
+
+// ───────── Iconos propios ─────────
+M.registrarIcono('ley', (o) => { const c = o.color || LEG;
+  return `<rect x="-30" y="-42" width="60" height="84" rx="6" fill="#fff" ${TR()}/>` +
+    `<path d="M-30,-20 L-30,-36 Q-30,-42 -24,-42 L24,-42 Q30,-42 30,-36 L30,-20Z" fill="${c}" ${TR()}/>` + TXT('LEY', 0, -30, 15, '#fff') +
+    `<path d="M-18,-6 L18,-6 M-18,6 L18,6 M-18,18 L8,18" ${TR(3, C.gris)}/>` +
+    (o.firma ? `<path d="M-18,32 q5,-12 9,-1 t9,-2 t10,-6" fill="none" ${TR(2.5, '#3B5BA9')}/>` : ''); });
+M.registrarIcono('leyPluma', (o) => `<g transform="translate(-12 4)">${M.iconos.ley(o)}</g>` +
+  `<path d="M44,-46 Q12,-40 6,8 L2,26 L12,12 Q40,-8 44,-46Z" fill="#E8F3F8" ${TR(3)}/><path d="M40,-40 Q20,-12 4,22" fill="none" ${TR(2)}/>`);
+M.registrarIcono('timon', (o) => { const c = o.color || C.tronco; let a1 = '', a2 = '';
+  for (let i = 0; i < 8; i++) { const a = (i * Math.PI) / 4; const d = `M${(10 * Math.cos(a)).toFixed(1)},${(10 * Math.sin(a)).toFixed(1)} L${(44 * Math.cos(a)).toFixed(1)},${(44 * Math.sin(a)).toFixed(1)}`;
+    a1 += `<path d="${d}" stroke="${C.tinta}" stroke-width="11" stroke-linecap="round"/>`; a2 += `<path d="${d}" stroke="${c}" stroke-width="4.5" stroke-linecap="round"/>`; }
+  return a1 + `<circle r="31" fill="none" stroke="${C.tinta}" stroke-width="13"/>` + a2 + `<circle r="31" fill="none" stroke="${c}" stroke-width="6"/><circle r="12" fill="${C.estrella}" ${TR()}/>`; });
+M.registrarIcono('vigilar', () => `<g transform="translate(-12 -8) scale(.62)">${M.iconos.timon({})}</g><g transform="translate(10 8) scale(.78)">${M.iconos.lupa()}</g>`);
+
+// ───────── El triángulo de la división de poderes (hilo visual) ─────────
+const VT = [[0, -190], [-260, 150], [260, 150]];
+const POD = [
+  { color: LEG, icono: 'leyPluma', tarea: 'Hacer las leyes', nombre: 'Legislativo' },
+  { color: EJE, icono: 'timon', tarea: 'Gobernar y aplicarlas', nombre: 'Ejecutivo' },
+  { color: JUD, icono: 'balanza', tarea: 'Juzgar', nombre: 'Judicial' },
+];
+function triangulo(padre, o = {}) {
+  const g = M.g(padre);
+  const lados = M.g(g);
+  const area = M.el('path', { d: `M${VT[0]} L${VT[1]} L${VT[2]}Z`, fill: '#fff', opacity: 0.6 }, lados);
+  const ls = [[0, 1], [1, 2], [2, 0]].map(([a, b]) => M.el('path', { d: `M${VT[a]} L${VT[b]}`, stroke: C.gris, 'stroke-width': 9, 'stroke-linecap': 'round', fill: 'none', pathLength: 1 }, lados));
+  const centro = M.g(g);
+  const vs = POD.map((p) => {
+    const v = M.g(g);
+    const halo = M.el('circle', { r: 96, fill: p.color, opacity: 0.22 }, v);
+    const vacio = M.el('circle', { r: 74, fill: C.crema, stroke: C.gris, 'stroke-width': 5, 'stroke-dasharray': '12 10' }, v);
+    const lleno = M.g(v); M.el('circle', { r: 74, fill: p.color, stroke: C.tinta, 'stroke-width': 5 }, lleno); M.el('circle', { r: 58, fill: '#fff' }, lleno);
+    const ic = M.icono(p.icono, v);
+    const preg = M.texto(v, '?', { tam: 84, peso: 900, color: C.gris, y: 4 });
+    const quien = M.g(v); M.el('circle', { r: 30, fill: C.ayto, stroke: C.tinta, 'stroke-width': 4 }, quien); M.texto(quien, '?', { tam: 40, peso: 900, y: 2 });
+    const tarea = M.rotulo(g, p.tarea, { tam: 30, fondo: p.color });
+    const nombre = M.rotulo(g, p.nombre, { tam: 30, fondo: p.color });
+    return { v, halo, vacio, lleno, ic, preg, quien, tarea, nombre };
+  });
+  const T = { g, lados, area, ls, vs, centro, x: 0, y: 0, s: 1, sv: 1 };
+  T.pos = (i) => [T.x + VT[i][0] * T.s, T.y + VT[i][1] * T.s];
+  T.centroide = () => [T.x, T.y + 37 * T.s];
+  T.colocar = (x, y, s, sv = s, o = 1) => { T.x = x; T.y = y; T.s = s; T.sv = sv; M.pon(lados, { x, y, s, o }); M.pon(centro, { x, y: y + 37 * s, s }); };
+  /** Lado k dibujado al p (0..1). */
+  T.lado = (k, p) => { ls[k].setAttribute('stroke-dasharray', `${M.clamp(p).toFixed(3)} 2`); M.opacidad(ls[k], p > 0.001 ? 1 : 0); };
+  T.lados = (p) => [0, 1, 2].forEach((k) => T.lado(k, p));
+  /** Estado de un vértice: o, s (extra), lleno 0..1, icono 0..1, preg 0..1, halo 0..1, quien 0..1. */
+  T.vert = (i, st = {}) => {
+    const V = vs[i]; const [x, y] = T.pos(i); const k = T.sv * (st.s === undefined ? 1 : st.s);
+    M.pon(V.v, { x, y: y + (st.dy || 0), s: k, o: st.o === undefined ? 1 : st.o });
+    const ll = st.lleno || 0;
+    M.opacidad(V.lleno, ll); M.opacidad(V.vacio, 1 - ll);
+    const ic = st.icono === undefined ? 1 : st.icono;
+    M.pon(V.ic, { s: 0.9 * Math.max(0.001, ic), o: ic > 0 ? 1 : 0 });
+    M.pon(V.preg, { o: st.preg || 0, s: 1 });
+    const h = st.halo || 0; M.pon(V.halo, { o: h, s: 1 + 0.08 * Math.sin((st.t || 0) * 5) });
+    const q = st.quien || 0; M.pon(V.quien, { x: 62, y: -58, s: Math.max(0.001, q) * (1 + 0.08 * Math.sin((st.t || 0) * 4 + i)), o: q > 0 ? 1 : 0 });
+  };
+  /** Etiqueta de un vértice ('tarea' | 'nombre'); lado 'abajo' o 'der'. */
+  T.etiq = (i, cual, o = 1, sl = 1, lado = 'abajo', extra = {}) => {
+    const el = vs[i][cual]; const [x, y] = T.pos(i); const r = 74 * T.sv;
+    if (lado === 'der') M.pon(el, { x: x + r + 14 + (el.ancho / 2) * sl, y, s: sl, o, ...extra });
+    else M.pon(el, { x, y: y + r + 10 + (el.alto / 2) * sl, s: sl, o, ...extra });
+  };
+  return T;
+}
+const MINI = { x: 165, y: 152, s: 0.36 };
+/** Triángulo pequeño en la esquina para las escenas 3-5 (resalta el vértice activo). */
+function triEsquina(T, t, activo, llenos, tLleno, desde) {
+  let x = MINI.x, y = MINI.y, s = MINI.s;
+  if (desde) { const p = M.e(t, 0.1, 1.0, 'inOutCubic'); x = M.lerp(desde.x, MINI.x, p); y = M.lerp(desde.y, MINI.y, p); s = M.lerp(desde.s, MINI.s, p); }
+  T.colocar(x, y + M.onda(t, 3, 2), s);
+  T.lados(1);
+  for (let i = 0; i < 3; i++) {
+    const act = i === activo;
+    const ll = i < llenos ? 1 : act ? M.e(t, tLleno, 0.5) : 0;
+    T.vert(i, { lleno: ll, icono: 1, halo: act ? 0.9 * M.e(t, 0.3, 0.5) : 0, s: act ? 1 + 0.12 * M.e(t, 0.3, 0.6, 'outBack') : 1, t });
+    T.etiq(i, 'tarea', 0, 1); T.etiq(i, 'nombre', 0, 1);
+  }
+}
+/** Rótulo «A = B»: primero A centrado; cuando llega B, A se desplaza. */
+function tituloIgual(padre, a, b, color, tam = 40) {
+  const ga = M.rotulo(padre, a, { tam, fondo: color });
+  const gi = M.texto(padre, '=', { tam: tam * 1.25, peso: 900, color: C.tinta });
+  const gb = M.rotulo(padre, b, { tam, fondo: C.blanco, color, borde: color, grosor: 5 });
+  const total = ga.ancho + 64 + gb.ancho;
+  return (t, cx, y, tA, tB) => {
+    const p = M.e(t, tB - 0.3, 0.5, 'inOutCubic');
+    const x0 = cx - total / 2;
+    ap(ga, { x: M.lerp(cx, x0 + ga.ancho / 2, p), y }, t, tA, 'sube');
+    ap(gi, { x: x0 + ga.ancho + 32, y: y - 2 }, t, tB - 0.05);
+    ap(gb, { x: x0 + ga.ancho + 64 + gb.ancho / 2, y }, t, tB, 'pop');
+  };
+}
+/** Ficha con icono a la izquierda y texto. */
+function ficha(padre, icono, txt, o = {}) {
+  const f = M.g(padre); const w = o.ancho || 330, h = o.alto || 96, tam = o.tam || 28;
+  M.tarjeta(f, { ancho: w, alto: h, trazo: o.color || C.tinta, grosor: 5, radio: 22 });
+  M.el('circle', { cx: -w / 2 + 50, r: 36, fill: M.aclara(o.color || C.gris, 0.78), stroke: o.color || C.tinta, 'stroke-width': 3 }, f);
+  if (icono) M.pon(M.icono(icono, f, o.opc || {}), { x: -w / 2 + 50, s: o.sIcono || 0.56 });
+  M.texto(f, txt, { tam, peso: 850, x: -w / 2 + 102, anchor: 'start', max: w - 125 });
+  if (o.marca !== undefined) { f.marca = M.marca(f, o.marca, 20); M.pon(f.marca, { x: w / 2 - 6, y: -h / 2 + 6 }); }
+  f.ancho = w; f.alto = h;
+  return f;
+}
+/** Juez o jueza con toga y chorrera blanca. */
+function juez(padre, o = {}) {
+  const g = M.g(padre);
+  const p = M.persona(g, { ropa: TOGA, pantalon: '#2B2D42', ...o });
+  M.svg(g, `<path d="M-7,-16 L0,-3 L7,-16Z" fill="#fff" ${TR(2)}/><path d="M-17,6 L17,6" stroke="#fff" stroke-width="2.5" opacity=".5"/>`);
+  return { g, p };
+}
+function sello(padre, txt = 'ANULADA') {
+  const g = M.g(padre); const w = M.medir(txt, 44, 900) + 46;
+  M.el('rect', { x: -w / 2, y: -38, width: w, height: 76, rx: 12, fill: '#fff', 'fill-opacity': 0.85, stroke: C.error, 'stroke-width': 7 }, g);
+  M.el('rect', { x: -w / 2 + 8, y: -30, width: w - 16, height: 60, rx: 8, fill: 'none', stroke: C.error, 'stroke-width': 2.5 }, g);
+  M.texto(g, txt, { tam: 44, peso: 900, color: C.error, y: 2 });
+  return g;
+}
+const T2 = { x: 640, y: 375, s: 0.82 };   // triángulo grande de la escena 2 (y final de la 1)
+
+// ───────── Escena 1: el jugador que lo hace todo ─────────
+M.escena(1, (E) => {
+  const g = E.g;
+  const campo = M.g(g);
+  // gradas con público
+  M.el('rect', { x: -20, y: 236, width: 1320, height: 200, fill: '#D9DEE6' }, campo);
+  const publico = [];
+  const rz = M.azar(31);
+  for (let f = 0; f < 4; f++) {
+    const fila = M.g(campo);
+    for (let x = 18 + (f % 2) * 17; x < 1290; x += 34) {
+      const p = M.g(fila);
+      M.el('path', { d: 'M-13,26 L-13,10 Q-13,0 0,0 Q13,0 13,10 L13,26Z', fill: M.ROPA[Math.floor(rz() * M.ROPA.length)], stroke: C.tinta, 'stroke-width': 2 }, p);
+      M.el('circle', { cy: -8, r: 10, fill: M.PIEL[Math.floor(rz() * M.PIEL.length)], stroke: C.tinta, 'stroke-width': 2 }, p);
+      publico.push({ p, x, y: 268 + f * 40, f: rz() * 6 });
+    }
+    M.el('rect', { x: -20, y: 288 + f * 40, width: 1320, height: 12, fill: '#C3CAD6' }, fila);
+  }
+  // césped
+  M.el('rect', { x: -20, y: 430, width: 1320, height: 400, fill: '#A9D18E' }, campo);
+  for (let i = 0; i < 9; i++) M.el('rect', { x: i * 160, y: 430, width: 80, height: 400, fill: '#9DC882' }, campo);
+  M.el('path', { d: 'M-20,446 L1300,446 M250,446 L250,820', stroke: '#fff', 'stroke-width': 5, opacity: 0.9 }, campo);
+  M.el('ellipse', { cx: 250, cy: 575, rx: 130, ry: 52, fill: 'none', stroke: '#fff', 'stroke-width': 5, opacity: 0.9 }, campo);
+  M.el('path', { d: 'M1300,480 L990,480 L990,660 L1300,660', fill: 'none', stroke: '#fff', 'stroke-width': 5, opacity: 0.9 }, campo);
+  // portería
+  const port = M.g(campo);
+  const red = M.g(port);
+  for (let x = 1066; x <= 1226; x += 16) M.el('path', { d: `M${x},372 L${x},560`, stroke: '#fff', 'stroke-width': 2, opacity: 0.75 }, red);
+  for (let y = 380; y <= 556; y += 16) M.el('path', { d: `M1060,${y} L1232,${y}`, stroke: '#fff', 'stroke-width': 2, opacity: 0.75 }, red);
+  M.el('path', { d: 'M1058,566 L1058,366 L1234,366 L1234,566', fill: 'none', stroke: C.tinta, 'stroke-width': 15, 'stroke-linejoin': 'round' }, port);
+  M.el('path', { d: 'M1058,566 L1058,366 L1234,366 L1234,566', fill: 'none', stroke: '#fff', 'stroke-width': 8, 'stroke-linejoin': 'round' }, port);
+  // jugadores
+  const ROSA = '#E8A0BF', AZUL = '#8CC0DE';
+  const jug = M.g(g);
+  const pJ = M.persona(jug, { ropa: ROSA, piel: M.PIEL[2], pelo: M.PELO[1], peinado: 'corto', pantalon: '#FFFFFF' });
+  const libroJ = M.icono('libro', jug, { titulo: 'Reglas', ancho: 60, alto: 76, tamTitulo: 15, color: '#C47A6A' });
+  M.pon(libroJ, { x: -22, y: 4, s: 0.5, r: -10 });
+  const silbJ = M.g(jug);
+  M.el('path', { d: 'M-8,-17 Q-6,-4 2,-4 M8,-17 Q8,-8 4,-4', fill: 'none', stroke: C.tinta, 'stroke-width': 1.6 }, silbJ);
+  M.pon(M.icono('silbato', silbJ), { x: 6, y: 0, s: 0.2 });
+  const rivales = [[790, 612, 1.45, -150], [925, 648, 1.5, 150]].map(([x, pies, s, a], i) => ({ el: M.persona(g, { ...M.gente(2, 12)[i], ropa: AZUL, pantalon: '#3E4A6B', edad: 'adulto' }), x, pies, s, a }));
+  const portero = M.persona(g, { ropa: '#A3B16B', pantalon: '#4A4E69', piel: M.PIEL[4], peinado: 'rizado' });
+  const cruces = rivales.map(() => M.marca(g, false, 22));
+  const balon = M.icono('balon', g);
+  const marcador = M.g(g);
+  M.tarjeta(marcador, { ancho: 300, alto: 92, fondo: C.tinta, trazo: C.tinta, radio: 18 });
+  M.el('rect', { x: -128, y: -18, width: 36, height: 36, rx: 8, fill: ROSA, stroke: '#fff', 'stroke-width': 3 }, marcador);
+  M.el('rect', { x: 92, y: -18, width: 36, height: 36, rx: 8, fill: AZUL, stroke: '#fff', 'stroke-width': 3 }, marcador);
+  const goles = M.texto(marcador, '0 – 0', { tam: 50, peso: 900, color: C.blanco, y: 2 });
+  const etiq = [['Escribe las reglas', 255, 525, 470, 552], ['Arbitra', 700, 470, 548, 526], ['Juega', 712, 612, 590, 610]].map(([txt, x, y, x2, y2]) => {
+    const e = M.g(g);
+    const l = M.el('path', { d: `M${x},${y} L${x2},${y2}`, stroke: C.tinta, 'stroke-width': 3, 'stroke-dasharray': '2 8', 'stroke-linecap': 'round' }, e);
+    const r = M.rotulo(e, txt, { tam: 30, fondo: C.blanco, color: C.tinta, borde: C.tinta, grosor: 3 }); M.pon(r, { x, y });
+    M.el('circle', { cx: x2, cy: y2, r: 6, fill: C.tinta }, e);
+    return e;
+  });
+  const rQ = M.rotulo(g, '¿Quién va a ganar?', { tam: 46, fondo: C.tinta });
+  const gol = M.rotulo(g, '¡GOL!', { tam: 54, fondo: ROSA, color: C.tinta, borde: C.tinta });
+  // fase 2: el poder se reparte
+  const piezas = [
+    M.icono('libro', g, { titulo: 'Reglas', ancho: 60, alto: 76, tamTitulo: 15, color: '#C47A6A' }),
+    M.icono('balon', g), M.icono('silbato', g)];
+  const aros = [0, 1, 2].map(() => M.el('circle', { r: 61, fill: 'none', stroke: C.gris, 'stroke-width': 4, 'stroke-dasharray': '10 9' }, g));
+  const ladosF = M.el('path', { d: '', fill: 'none', stroke: C.gris, 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-dasharray': '2 16' }, g);
+  g.insertBefore(ladosF, aros[0]);
+  const rNadie = M.rotulo(g, 'Nadie tiene todo el poder', { tam: 44, fondo: C.tinta });
+  const rTres = M.rotulo(g, 'El poder se parte en tres', { tam: 48, fondo: C.estado });
+  const DEST = VT.map(([x, y]) => [T2.x + x * T2.s, T2.y + y * T2.s]);
+  const tReg = E.m('escribe el reglamento'), tJue = E.m('juega y'), tArb = E.m('árbitro'), tQ = E.m('quién crees'), tEx = E.m('Exacto'), tNo = E.m('no se le da entero'), tTres = E.m('Se parte en tres');
+  const tTiro = Math.max(tQ + 0.9, tEx - 0.9), tGol = tTiro + 0.6;
+  const X0 = 520, PIES = 625, SJ = 1.75;
+  return (t, d) => {
+    const fuera = M.e(t, tNo - 0.5, 0.6);
+    M.camara(campo, t, d, { hasta: 1.03, cy: 520 });
+    M.pon(campo, { o: 1 - fuera });
+    const celebra = M.ventana(t, tGol, tNo - 0.6, 0.3);
+    publico.forEach((q, i) => M.pon(q.p, { x: q.x, y: q.y + M.onda(t, 1.1 + (i % 4) * 0.13, 1.5, q.f) - (i % 3 === 0 ? celebra * Math.abs(M.onda(t, 0.45, 9, q.f)) : 0) }));
+    // jugador protagonista
+    const aJ = M.aparicion(t, 0.15, 0.6, 'sube');
+    const fase2 = M.e(t, tNo - 0.2, 1.0, 'inOutCubic');
+    const xJ = M.lerp(X0, 640, fase2), pies = M.lerp(PIES, 470, fase2), sJ = M.lerp(SJ, 1.25, fase2);
+    const correr = t > tTiro - 0.7 && t < tTiro ? Math.abs(M.onda(t, 0.3, 5)) : 0;
+    M.ponAp(jug, { x: xJ + (t > tTiro - 0.7 && t < tGol ? M.e(t, tTiro - 0.7, 0.7) * 40 * (1 - fase2) : 0), y: pies - 50 * sJ - correr, s: sJ, r: M.onda(t, 2.6, 1.5) }, aJ);
+    M.opacidad(libroJ, M.e(t, tReg, 0.3) * (1 - M.e(t, tNo, 0.1)));
+    M.pon(libroJ, { x: -22, y: 4, s: 0.5 * M.e(t, tReg, 0.5, 'outBack') + 0.0001, r: -10 });
+    M.opacidad(silbJ, M.e(t, tArb, 0.3) * (1 - M.e(t, tNo + 0.25, 0.1)));
+    const brazoArriba = M.ventana(t, tArb + 0.1, tQ - 0.2, 0.3) + M.ventana(t, tGol, tNo - 0.4, 0.3);
+    M.brazo(pJ, 'd', M.lerp(-8, -150, M.clamp(brazoArriba)) + M.onda(t, 0.5, 8) * M.clamp(brazoArriba));
+    // rivales y portero
+    rivales.forEach((rv, i) => {
+      const a = M.aparicion(t, 0.3 + i * 0.15, 0.5, 'sube');
+      const protesta = M.e(t, tGol + 0.3 + i * 0.2, 0.4);
+      ponP(rv.el, rv.x, rv.pies, rv.s, { o: a.o * (1 - fuera), dy: a.dy, ...bamboleo(t, i) });
+      M.brazo(rv.el, i ? 'i' : 'd', M.lerp(i ? 8 : -8, rv.a, protesta) + M.onda(t, 0.4, 10 * protesta, i));
+      M.ponAp(cruces[i], { x: rv.x, y: rv.pies - rv.s * 112, o: 1 - fuera }, M.aparicion(t, tGol + 0.5 + i * 0.25, 0.4));
+    });
+    const salto = M.e(t, tTiro + 0.15, 0.4);
+    ponP(portero, 1100 + salto * 40, 600, 1.35, { o: M.e(t, 0.4, 0.5) * (1 - fuera), r: salto * 50 + M.onda(t, 2, 1.5) });
+    // balón
+    let bx, by, br = 0, bo = 1, bs = 0.42;
+    const pie = [X0 + 34 * SJ, PIES - 12];
+    if (t < tTiro) {
+      const toques = t > tJue - 0.2 ? Math.abs(M.onda(t, 0.9, 1)) : 0;
+      bx = pie[0] + (t > tTiro - 0.7 ? M.e(t, tTiro - 0.7, 0.7) * 40 : 0); by = pie[1] - toques * 60; br = t * 120;
+      bo = M.e(t, 0.4, 0.3);
+    } else if (t < tGol) {
+      const p = M.p(t, tTiro, tGol - tTiro);
+      bx = M.lerp(pie[0] + 40, 1185, p); by = M.lerp(pie[1], 420, p) - Math.sin(p * Math.PI) * 120; br = t * 600;
+    } else {
+      const p = M.e(t, tGol, 0.8, 'outBounce');
+      bx = 1185 + M.e(t, tGol, 0.8) * 10; by = M.lerp(420, 535, p); br = 800 + M.e(t, tGol, 0.8) * 90;
+    }
+    M.pon(balon, { x: bx, y: by, r: br, s: bs, o: bo * (1 - M.e(t, tNo, 0.1)) });
+    // marcador
+    const n = t < tGol ? 0 : 1 + Math.floor(M.contador(t, tGol + 0.7, Math.max(0.8, tNo - tGol - 1.4), 0, 8.99, 'inQuad'));
+    M.ponTexto(goles, `${n} – 0`);
+    M.ponAp(marcador, { x: 1050, y: 92, s: 1 + 0.08 * M.ventana(t, tGol, tGol + 0.5, 0.15), o: 1 - fuera }, M.aparicion(t, 0.3, 0.5));
+    // etiquetas
+    [tReg, tArb, tJue].forEach((t0, i) => apFuera(etiq[i], {}, t, t0, tQ - 0.3, 'fundido', 0.4));
+    apFuera(rQ, { x: 470, y: 92 + M.onda(t, 2, 3) }, t, tQ, tNo - 0.6, 'sube');
+    apFuera(gol, { x: 1050, y: 200, r: M.onda(t, 0.6, 4) }, t, tGol, tNo - 0.6, 'pop', 0.4);
+    // fase 2
+    const ORIG = [[X0 - 22 * SJ, PIES - 50 * SJ + 4 * SJ], [pie[0], pie[1]], [X0 + 6 * SJ, PIES - 50 * SJ]];
+    const SF = [1.05, 0.95, 1.05];
+    piezas.forEach((pz, i) => {
+      const p = M.e(t, tNo + i * 0.15, 1.0, 'inOutCubic');
+      const [x0, y0] = ORIG[i], [x1, y1] = DEST[i];
+      M.pon(pz, { x: M.lerp(x0, x1, p), y: M.lerp(y0, y1, p) - Math.sin(p * Math.PI) * 60 + (p >= 1 ? M.onda(t, 2.4, 4, i) : 0), s: M.lerp([0.5, 0.42, 0.2][i] * SJ / 1.75, SF[i], p), r: (1 - p) * (i === 0 ? -10 : 0) + (p >= 1 ? M.onda(t, 3, 4, i) : 0), o: t >= tNo ? 1 : 0 });
+      ap(aros[i], { x: x1, y: y1, s: 1 + 0.03 * M.onda(t, 1.2, 1, i) }, t, tTres + i * 0.12);
+    });
+    const pl = M.e(t, tTres + 0.2, 0.8);
+    ladosF.setAttribute('d', `M${DEST[0]} L${DEST[1]} L${DEST[2]}Z`);
+    M.opacidad(ladosF, pl);
+    apFuera(rNadie, { x: 640, y: 70 }, t, tNo, tTres - 0.3, 'sube');
+    ap(rTres, { x: 640, y: 70 + M.onda(t, 2.5, 3), s: 1 + 0.03 * M.onda(t, 1.2, 1) }, t, tTres, 'sube');
+  };
+});
+
+// ───────── Escena 2: el triángulo de la división de poderes ─────────
+M.escena(2, (E) => {
+  const g = E.g;
+  const T = triangulo(g);
+  const rayo = M.icono('rayo', T.centro);
+  const chispas = [0, 1, 2].map(() => M.icono('rayo', g));
+  const rTres = M.rotulo(g, 'Tres trabajos distintos', { tam: 46, fondo: C.tinta });
+  const rDiv = M.rotulo(g, 'División de poderes', { tam: 52, fondo: C.estado, pad: 34 });
+  const tTr = E.m('tres trabajos'), tDiv = E.m('división de poderes'), tGr = E.m('grupo diferente');
+  const TAREA = [E.m('Hacer las leyes'), E.m('Aplicarlas'), E.m('juzgar')];
+  return (t) => {
+    T.colocar(T2.x, T2.y + M.onda(t, 3.2, 3), T2.s);
+    M.opacidad(T.area, 0.6 * M.e(t, 0.2, 0.8));
+    [0, 1, 2].forEach((k) => T.lado(k, M.e(t, 0.1 + k * 0.25, 0.7)));
+    for (let i = 0; i < 3; i++) {
+      const a = M.aparicion(t, 0.05 + i * 0.12, 0.5);
+      const tt = TAREA[i];
+      const ic = M.e(t, tt - 0.15, 0.5, 'outBack');
+      const destello = M.ventana(t, tDiv + 1.0 + i * 0.1, tDiv + 1.6 + i * 0.1, 0.25);
+      T.vert(i, { o: a.o, s: a.s * (1 + 0.1 * M.ventana(t, tt - 0.1, tt + 0.9, 0.25)), lleno: 0, icono: ic, preg: 1 - M.e(t, tt - 0.3, 0.3), halo: 0.9 * destello, quien: M.e(t, tGr + i * 0.2, 0.4, 'outBack'), t });
+      T.etiq(i, 'tarea', M.e(t, tt, 0.4), 1 + 0.06 * M.ventana(t, tt, tt + 0.8, 0.2), i === 0 ? 'der' : 'abajo');
+      T.etiq(i, 'nombre', 0);
+    }
+    apFuera(rTres, { x: 640, y: 70 }, t, Math.max(0.5, tTr - 0.4), tDiv - 0.4, 'sube');
+    ap(rDiv, { x: 640, y: 70, s: 1 + 0.025 * M.onda(t, 1.4, 1) }, t, tDiv, 'sube');
+    // el poder (rayo) se divide en tres y va a cada vértice
+    const aR = M.aparicion(t, tDiv - 0.1, 0.5);
+    const parte = M.e(t, tDiv + 0.6, 0.15);
+    M.pon(rayo, { s: 0.85 * aR.s, o: aR.o * (1 - parte), r: M.onda(t, 0.5, 6) });
+    const [cx, cy] = T.centroide();
+    chispas.forEach((ch, i) => {
+      const p = M.e(t, tDiv + 0.6, 0.6, 'inOutCubic');
+      const [vx, vy] = T.pos(i);
+      M.pon(ch, { x: M.lerp(cx, vx, p), y: M.lerp(cy, vy, p), s: 0.5 * (1 - 0.5 * p), o: t > tDiv + 0.6 && p < 1 ? 1 : 0 });
+    });
+  };
+});
+
+// ───────── Escena 3: poder legislativo ─────────
+M.escena(3, (E) => {
+  const g = E.g;
+  const T = triangulo(g);
+  const tit = tituloIgual(g, 'Poder legislativo', 'Cortes Generales', LEG);
+  const tLeg = E.m('legislativo'), tHace = E.m('hace las leyes'), tCor = E.m('Cortes Generales'), tCam = E.m('cámaras'), tCon = E.m('Congreso de los Diputados'), t350 = E.m('350'), tSen = E.m('el Senado'), tGas = E.m('en qué se gasta'), tVig = E.m('vigilan');
+  const XC = 330, XS = 690, YB = 330;
+  const grande = M.icono('leyPluma', g);
+  const congreso = M.icono('cupula', g, { acento: LEG });
+  const senado = M.icono('edificio', g, { tejado: M.aclara(LEG, 0.35) });
+  const rCon = M.rotulo(g, 'Congreso', { tam: 32, fondo: C.blanco, color: LEG, borde: LEG, grosor: 4 });
+  const rSen = M.rotulo(g, 'Senado', { tam: 32, fondo: C.blanco, color: LEG, borde: LEG, grosor: 4 });
+  const llave = M.el('path', { d: `M${XC - 40},248 L${XC - 40},228 Q${XC - 40},218 ${XC - 30},218 L${XS + 30},218 Q${XS + 40},218 ${XS + 40},228 L${XS + 40},248`, fill: 'none', stroke: LEG, 'stroke-width': 5, 'stroke-linecap': 'round', pathLength: 1 }, g);
+  const rCam = M.rotulo(g, '2 cámaras', { tam: 28, fondo: LEG });
+  const hemi = M.hemiciclo(g, { n: 350, cx: XC, cy: 628, rInt: 48, rExt: 132, filas: 9 });
+  const cont = M.g(g);
+  const num = M.texto(cont, '0', { tam: 66, peso: 900, color: LEG });
+  M.texto(cont, 'diputados', { tam: 30, peso: 850, y: 50 });
+  const fichas = [['leyPluma', 'Hacen las leyes', tHace], ['monedas', 'Deciden en qué se gasta', tGas], ['vigilar', 'Vigilan al Gobierno', tVig]].map(([ic, txt, t0]) => ({ f: ficha(g, ic, txt, { color: LEG, ancho: 340, alto: 104, sIcono: 0.6 }), t0 }));
+  return (t) => {
+    triEsquina(T, t, 0, 0, tLeg, T2);
+    T.vs.forEach((V) => M.opacidad(V.quien, 1 - M.e(t, 0, 0.35)));
+    tit(t, 760, 70, Math.max(0.5, tLeg - 0.2), tCor);
+    apFuera(grande, { x: 510, y: 380 + M.onda(t, 2.4, 6), s: 2.3, r: M.onda(t, 3, 3) }, t, Math.max(0.5, tHace - 0.3), tCor - 0.4);
+    ap(congreso, { x: XC, y: YB + M.onda(t, 3, 3), s: 1.5 }, t, Math.min(tCam - 0.2, tCor + 0.1), 'sube');
+    ap(senado, { x: XS, y: YB + M.onda(t, 3, 3, 1), s: 1.5 }, t, Math.min(tSen - 0.3, tCor + 0.4), 'sube');
+    ap(rCon, { x: XC, y: 425, s: 1 + 0.06 * M.ventana(t, tCon, tCon + 1, 0.25) }, t, tCon - 0.1);
+    ap(rSen, { x: XS, y: 425, s: 1 + 0.06 * M.ventana(t, tSen, tSen + 1, 0.25) }, t, tSen);
+    llave.setAttribute('stroke-dasharray', `${M.e(t, tCam - 0.3, 0.7).toFixed(3)} 2`); M.opacidad(llave, t > tCam - 0.3 ? 1 : 0);
+    ap(rCam, { x: (XC + XS) / 2, y: 218 }, t, tCam);
+    // hemiciclo: 350 escaños que se llenan
+    const lleno = Math.round(M.contador(t, t350 - 0.3, 2.0, 0, 350, 'inOutQuad'));
+    hemi.asientos.forEach((a, i) => a.setAttribute('fill', i < lleno ? LEG : C.grisClaro));
+    M.ponAp(hemi.g, { y: M.onda(t, 3, 2) }, M.aparicion(t, tCon + 0.2, 0.5, 'fundido'));
+    M.ponTexto(num, M.num(lleno));
+    ap(cont, { x: 568, y: 572, s: 1 + 0.06 * M.ventana(t, t350 + 1.7, t350 + 2.4, 0.2) }, t, t350 - 0.3);
+    fichas.forEach((f, i) => ap(f.f, { x: 1060, y: 270 + i * 140 + M.onda(t, 3, 3, i), s: 1 + 0.05 * M.ventana(t, f.t0, f.t0 + 1, 0.25) }, t, f.t0 - 0.15, 'sube'));
+  };
+});
+
+// ───────── Escena 4: poder ejecutivo ─────────
+M.escena(4, (E) => {
+  const g = E.g;
+  const T = triangulo(g);
+  const tit = tituloIgual(g, 'Poder ejecutivo', 'Gobierno', EJE, 42);
+  const tEje = E.m('ejecutivo'), tCum = E.m('se cumplan'), tGob = E.m('Lo tiene el Gobierno'), tPre = E.m('un presidente'), tPra = E.m('una presidenta'), tMin = E.m('sus ministros'), tCada = E.m('Cada ministerio');
+  const tDir = E.m('dirige el país'), tPres = E.m('presupuesto');
+  const MIN = [[360, 'sanidad', 'Sanidad', E.m('la sanidad')], [495, 'escudo', 'Defensa', E.m('la defensa')], [785, 'mundo', 'Exteriores', E.m('otros países')], [920, 'colegio', 'Educación', E.m('otros países') + 0.7]];
+  const MX = 640, MY = 470, RX = 310, RY = 64;
+  const borde = (x) => MY - RY * Math.sqrt(Math.max(0, 1 - ((x - MX) / RX) ** 2));
+  const gente = M.gente(4, 404);
+  const mins = MIN.map(([x, ic, txt], i) => {
+    const p = M.persona(g, { ...gente[i], edad: 'adulto' });
+    const tag = M.g(g);
+    M.el('circle', { r: 34, fill: C.blanco, stroke: EJE, 'stroke-width': 4 }, tag);
+    M.pon(M.icono(ic, tag), { s: 0.5 });
+    M.texto(tag, txt, { tam: 25, peso: 900, y: -56 });
+    return { p, tag, x, pies: borde(x) + 54 };
+  });
+  const presA = M.persona(g, { piel: M.PIEL[1], pelo: M.PELO[0], ropa: '#7D8597', peinado: 'corto', gafas: true });
+  const presB = M.persona(g, { piel: M.PIEL[3], pelo: M.PELO[1], ropa: '#7D8597', peinado: 'largo' });
+  const estrella = M.svg(g, M.estrellaPath(0, 0, 18, C.estrella, `stroke="${C.tinta}" stroke-width="3"`));
+  const mesa = M.g(g);
+  M.el('ellipse', { cx: MX, cy: MY + 16, rx: RX, ry: RY, fill: '#B98B62', stroke: C.tinta, 'stroke-width': 4 }, mesa);
+  M.el('ellipse', { cx: MX, cy: MY, rx: RX, ry: RY, fill: '#D9B98C', stroke: C.tinta, 'stroke-width': 4 }, mesa);
+  M.el('ellipse', { cx: MX, cy: MY, rx: RX - 40, ry: RY - 18, fill: 'none', stroke: '#fff', 'stroke-width': 3, opacity: 0.35 }, mesa);
+  const placa = M.rotulo(g, 'Presidencia', { tam: 28, fondo: EJE });
+  const papeles = [[-190, 8, -12], [175, 12, 10], [-120, 30, 6], [110, 32, -6]].map(([x, y, r]) => { const p = M.icono('ley', g, { color: EJE }); return { p, x, y, r }; });
+  const rCum = ficha(g, 'leyPluma', 'Hace cumplir las leyes', { color: EJE, ancho: 440, alto: 84, tam: 28, sIcono: 0.5 });
+  const fDir = ficha(g, 'timon', 'Dirige el país', { color: EJE, ancho: 330, alto: 84, sIcono: 0.55 });
+  const fPre = ficha(g, 'monedas', 'Gestiona el presupuesto', { color: EJE, ancho: 450, alto: 84, sIcono: 0.55 });
+  return (t, d) => {
+    triEsquina(T, t, 1, 1, tEje);
+    tit(t, 760, 70, Math.max(0.5, tEje - 0.2), tGob);
+    ap(rCum, { x: 760, y: 150 + M.onda(t, 3, 2) }, t, tCum - 0.2, 'sube');
+    // mesa y presidencia
+    const aM = M.aparicion(t, Math.min(0.6, tGob - 0.4), 0.6, 'sube');
+    const cambio = M.p(t, tPra - 0.1, 0.4);
+    const alterna = t > tPra + 2.5 ? (Math.floor((t - tPra - 2.5) / 3) % 2 === 0 ? 0 : 1) : 0;
+    const fade = t > tPra + 2.5 ? M.clamp(((t - tPra - 2.5) % 3) / 0.4) : 1;
+    const oB = t < tPra + 2.5 ? cambio : alterna === 0 ? 1 - fade : fade;
+    const aP = M.aparicion(t, tPre - 0.2, 0.5, 'sube');
+    ponP(presA, MX, MY - 6, 1.4, { o: aP.o * (1 - oB), dy: aP.dy, ...bamboleo(t, 0) });
+    ponP(presB, MX, MY - 6, 1.4, { o: aP.o * oB, dy: aP.dy, ...bamboleo(t, 0) });
+    M.ponAp(estrella, { x: MX, y: MY - 6 - 140 * 1.0 - 34 + M.onda(t, 2, 3), r: t * 25 }, M.aparicion(t, tPre + 0.2, 0.5));
+    mins.forEach((m, i) => {
+      const a = M.aparicion(t, tMin - 0.1 + i * 0.15, 0.5, 'sube');
+      ponP(m.p, m.x, m.pies, 1.22, { o: a.o, dy: a.dy, ...bamboleo(t, i + 1) });
+      const t0 = MIN[i][3];
+      ap(m.tag, { x: m.x, y: m.pies - 168 + M.onda(t, 2.5, 3, i), s: 1 + 0.12 * M.ventana(t, t0, t0 + 0.9, 0.25) }, t, t0 - 0.2);
+    });
+    M.ponAp(mesa, {}, aM);
+    ap(placa, { x: MX, y: MY + 10 }, t, tPre + 0.3, 'pop');
+    papeles.forEach((p, i) => ap(p.p, { x: MX + p.x, y: MY + p.y, s: 0.42, r: p.r + M.onda(t, 3, 2, i) }, t, tCada + i * 0.15, 'cae', 0.8));
+    ap(fDir, { x: 420, y: 612 + M.onda(t, 3, 2) }, t, tDir - 0.2, 'sube');
+    ap(fPre, { x: 860, y: 612 + M.onda(t, 3, 2, 1) }, t, Math.min(tPres - 0.3, tDir + 1.0), 'sube');
+  };
+});
+
+// ───────── Escena 5: poder judicial ─────────
+M.escena(5, (E) => {
+  const g = E.g;
+  const T = triangulo(g);
+  const tit = tituloIgual(g, 'Poder judicial', 'Jueces y tribunales', JUD);
+  const tJud = E.m('judicial'), tJue = E.m('los jueces y'), tSup = E.m('Tribunal Supremo'), tInd = E.m('independientes'), tNi = E.m('ni siquiera'), tCo = E.m('cómo juzgar');
+  const XS = 550;
+  const sala = M.g(g);
+  M.el('rect', { x: 0, y: 560, width: 1280, height: 300, fill: C.arena }, sala);
+  M.el('rect', { x: 290, y: 178, width: 520, height: 382, rx: 16, fill: '#EFE2CC', stroke: C.tinta, 'stroke-width': 4 }, sala);
+  [340, 420, 680, 760].forEach((x) => M.el('rect', { x: x - 26, y: 200, width: 52, height: 336, rx: 10, fill: '#E5D3B5' }, sala));
+  M.el('circle', { cx: XS, cy: 262, r: 72, fill: C.blanco, stroke: JUD, 'stroke-width': 5 }, sala);
+  const balanza = M.icono('balanza', g);
+  const jz = juez(g, { piel: M.PIEL[2], pelo: M.PELO[4], peinado: 'mono', gafas: true });
+  const estrado = M.g(g);
+  M.el('rect', { x: 410, y: 404, width: 280, height: 156, rx: 8, fill: '#B98B62', stroke: C.tinta, 'stroke-width': 4 }, estrado);
+  M.el('rect', { x: 396, y: 392, width: 308, height: 20, rx: 6, fill: C.tronco, stroke: C.tinta, 'stroke-width': 4 }, estrado);
+  M.el('rect', { x: 450, y: 440, width: 200, height: 90, rx: 8, fill: 'none', stroke: '#9C6B4E', 'stroke-width': 4 }, estrado);
+  M.pon(M.icono('escudo', estrado, { color: JUD }), { x: XS, y: 485, s: 0.55 });
+  const mazo = M.icono('mazo', g);
+  const lados = [[360, M.gente(2, 55)[0]], [740, M.gente(2, 55)[1]]].map(([x, o], i) => {
+    const p = M.persona(g, { ...o, edad: 'adulto' });
+    const mesa = M.g(g);
+    M.el('rect', { x: -62, y: 0, width: 124, height: 56, rx: 6, fill: '#C9A27A', stroke: C.tinta, 'stroke-width': 4 }, mesa);
+    return { p, mesa, x };
+  });
+  const rJue = M.rotulo(g, 'Jueces y juezas', { tam: 28, fondo: C.blanco, color: JUD, borde: JUD, grosor: 3 });
+  // Tribunal Supremo arriba
+  const sup = M.g(g);
+  [[0, 300], [22, 240], [44, 180]].forEach(([dy, w]) => M.el('rect', { x: -w / 2, y: 100 - dy, width: w, height: 22, rx: 5, fill: M.aclara(JUD, 0.6 - dy / 200), stroke: C.tinta, 'stroke-width': 3.5 }, sup));
+  M.pon(M.icono('edificio', sup, { tejado: JUD }), { y: 2, s: 1.15 });
+  M.el('g', {}, sup).innerHTML = M.estrellaPath(0, -82, 18, C.estrella, `stroke="${C.tinta}" stroke-width="3"`);
+  const rSup = M.rotulo(g, 'Tribunal Supremo', { tam: 32, fondo: JUD });
+  const rAlto = M.texto(g, 'el más alto', { tam: 26, peso: 850, color: C.grisOsc });
+  const otros = M.g(g);
+  [-100, 0, 100].forEach((x) => M.pon(M.icono('edificio', otros, { tejado: M.aclara(JUD, 0.45) }), { x, s: 0.55 }));
+  M.texto(otros, 'Otros tribunales', { tam: 26, peso: 850, y: 54 });
+  const subir = M.flecha(g, { x1: 1050, y1: 490, x2: 1050, y2: 440, color: JUD, grosor: 6 });
+  // independencia
+  const cupula = M.g(g);
+  M.el('ellipse', { cx: 0, cy: 0, rx: 205, ry: 205, fill: JUD, 'fill-opacity': 0.07, stroke: JUD, 'stroke-width': 6, 'stroke-dasharray': '18 12' }, cupula);
+  const rInd = M.rotulo(g, 'Independientes', { tam: 34, fondo: JUD });
+  const gob = M.g(g);
+  const pG = M.persona(gob, { ...M.gente(1, 77)[0], ropa: EJE, edad: 'adulto', brazoD: -60 });
+  M.pon(M.icono('timon', gob), { x: 0, y: -2, s: 0.18 });
+  const bur = M.bocadillo(g, { ancho: 250, alto: 104, colaX: 120, colaY: 82 });
+  M.texto(bur.contenido, '¡Juzga así!', { tam: 32, peso: 900 });
+  const no = M.marca(g, false, 30);
+  return (t) => {
+    triEsquina(T, t, 2, 2, tJud);
+    tit(t, 760, 70, Math.max(0.5, tJud - 0.2), tJue);
+    const aS = M.aparicion(t, 0.15, 0.6, 'fundido');
+    M.ponAp(sala, {}, aS);
+    ap(balanza, { x: XS, y: 262, s: 1.0, r: M.onda(t, 2.2, 4) }, t, tJud + 0.2);
+    ponP(jz.g, XS, 470, 1.3, { o: M.e(t, 0.3, 0.5), ...bamboleo(t, 0) });
+    M.pon(estrado, { o: M.e(t, 0.3, 0.5) });
+    const golpe = Math.max(0, Math.sin(t * 4.5)) * M.e(t, tJud, 0.3) * (t < tSup ? 1 : 0.4);
+    M.pon(mazo, { x: 646, y: 368, s: 0.55, r: -30 + golpe * 40, o: M.e(t, 0.4, 0.4) });
+    M.brazo(jz.p, 'd', -60 + golpe * 30);
+    lados.forEach((l, i) => {
+      const a = M.aparicion(t, 0.5 + i * 0.2, 0.5, 'sube');
+      ponP(l.p, l.x, 640, 1.15, { o: a.o, dy: a.dy, ...bamboleo(t, i + 1) });
+      M.ponAp(l.mesa, { x: l.x, y: 590 }, a);
+    });
+    apFuera(rJue, { x: XS, y: 146 + 0 * M.onda(t, 3, 2) }, t, tJue + 0.2, tInd - 0.4, 'fundido');
+    // Supremo
+    ap(sup, { x: 1050, y: 338 + M.onda(t, 3, 3) }, t, tSup - 0.3, 'sube');
+    ap(rSup, { x: 1050, y: 162 }, t, tSup);
+    ap(rAlto, { x: 1050, y: 208 }, t, tSup + 0.5, 'fundido');
+    apFuera(otros, { x: 1050, y: 528 }, t, tSup - 0.6, tInd - 0.3, 'sube');
+    subir.poner(M.e(t, tSup + 0.2, 0.5)); M.opacidad(subir.g, (t > tSup + 0.2 ? 1 : 0) * (1 - M.e(t, tInd - 0.3, 0.4)));
+    // independencia
+    const aC = M.aparicion(t, tInd, 0.7);
+    M.ponAp(cupula, { x: XS, y: 400, s: 1 + 0.03 * M.onda(t, 1.4, 1) + 0.06 * M.ventana(t, tCo, tCo + 0.6, 0.2) }, aC);
+    ap(rInd, { x: XS, y: 615 }, t, tInd + 0.2, 'sube');
+    const aG = M.aparicion(t, tNi - 0.3, 0.6, 'sube');
+    M.ponAp(gob, { x: 1150 + (1 - M.e(t, tNi - 0.3, 0.6)) * 120, y: 640 - 50 * 1.25, s: 1.25, ...bamboleo(t, 3) }, aG);
+    M.brazo(pG, 'd', -70 + M.onda(t, 0.7, 12));
+    ap(bur, { x: 965, y: 505 + M.onda(t, 2, 3) }, t, tNi + 0.1);
+    ap(no, { x: 1080, y: 462 }, t, tCo - 0.1, 'pop', 0.45);
+  };
+});
+
+// ───────── Escena 6: el Tribunal Constitucional ─────────
+M.escena(6, (E) => {
+  const g = E.g;
+  M.el('rect', { x: 0, y: 630, width: 1280, height: 300, fill: C.arena }, g);
+  const T = triangulo(g);
+  const marco = M.el('circle', { r: 238, fill: 'none', stroke: C.gris, 'stroke-width': 4, 'stroke-dasharray': '4 12', 'stroke-linecap': 'round' }, g);
+  g.insertBefore(marco, T.g);
+  const tVig = E.m('vigilante especial'), tTC = E.m('Tribunal Constitucional'), tCom = E.m('comprobar'), tCon = E.m('contra la Constitución'), tSal = E.m('se salta'), tAnu = E.m('la anula');
+  const XG = 1080, PG = 630, SG = 1.9;
+  const guard = juez(g, { piel: M.PIEL[4], pelo: M.PELO[0], peinado: 'rizado' });
+  const libro = M.icono('libro', g, { titulo: 'Constitución', ancho: 120, alto: 140, tamTitulo: 17, color: C.estado });
+  const rTC = M.rotulo(g, 'Tribunal Constitucional', { tam: 46, fondo: C.tinta });
+  const rVig = M.rotulo(g, 'Un vigilante especial', { tam: 30, fondo: C.estado });
+  const leyes = [M.icono('ley', g, { color: LEG }), M.icono('ley', g, { color: LEG })];
+  const lupa = M.icono('lupa', g);
+  const ok = M.marca(g, true, 34), mal = M.marca(g, false, 34);
+  const st = sello(g);
+  const comp = M.flecha(g, { x1: 1050, y1: 500, x2: 815, y2: 445, color: C.estado, grosor: 6, curva: -24, discontinua: true });
+  const rFuera = M.texto(g, 'Fuera de los tres poderes', { tam: 26, peso: 850, color: C.grisOsc });
+  const tri = { x: 330, y: 392, s: 0.6 };
+  return (t) => {
+    const p = M.e(t, 0.05, 1.0, 'inOutCubic');
+    T.colocar(M.lerp(MINI.x, tri.x, p), M.lerp(MINI.y, tri.y, p) + M.onda(t, 3.2, 3), M.lerp(MINI.s, tri.s, p));
+    T.lados(1);
+    for (let i = 0; i < 3; i++) {
+      const brillo = i === 0 ? M.ventana(t, tCom - 0.2, tCom + 0.8, 0.3) + M.ventana(t, tSal - 0.4, tSal + 0.6, 0.3) : 0;
+      T.vert(i, { lleno: 1, halo: M.clamp(brillo) * 0.9, t });
+      T.etiq(i, 'nombre', M.e(t, 0.8 + i * 0.1, 0.4), 0.82);
+      T.etiq(i, 'tarea', 0);
+    }
+    M.ponAp(marco, { x: tri.x, y: tri.y + 36, r: t * 4 }, M.aparicion(t, 0.9, 0.6, 'fundido'));
+    ap(rFuera, { x: tri.x, y: 140 }, t, tTC + 0.6, 'fundido');
+    // guardián
+    const aG = M.aparicion(t, tVig - 0.2, 0.6, 'sube');
+    M.ponAp(guard.g, { x: XG, y: PG - 50 * SG, s: SG, ...bamboleo(t, 0) }, aG);
+    M.brazo(guard.p, 'd', -55 + M.onda(t, 2, 4));
+    M.ponAp(libro, { x: XG + 50, y: PG - 104 + M.onda(t, 2.5, 3), s: 0.85, r: 6 + M.onda(t, 3, 2) }, aG);
+    ap(rVig, { x: XG, y: 398 + M.onda(t, 2.5, 3) }, t, tVig - 0.2, 'sube');
+    ap(rTC, { x: 640, y: 66, s: 1 + 0.04 * M.ventana(t, tTC, tTC + 0.8, 0.2) }, t, tTC - 0.1, 'sube');
+    // leyes que se revisan
+    const [lx, ly] = T.pos(0);
+    const X1 = 720, Y1 = 400;
+    leyes.forEach((L, i) => {
+      const t0 = i === 0 ? tCom - 0.1 : tSal - 0.5;
+      const ida = M.e(t, t0, 0.8, 'inOutCubic');
+      const vuelta = i === 0 ? M.e(t, tSal - 0.9, 0.6, 'inCubic') : 0;
+      M.pon(L, { x: M.lerp(lx, X1, ida) + vuelta * -360, y: M.lerp(ly, Y1, ida) - Math.sin(ida * Math.PI) * 70 + M.onda(t, 2.5, 3, i), s: M.lerp(0.4, 1.7, ida) * (1 - vuelta * 0.6), r: M.onda(t, 3, 2, i), o: t > t0 ? 1 - vuelta : 0 });
+    });
+    const busca = (t0, dur) => M.ventana(t, t0, t0 + dur, 0.3);
+    const b1 = busca(tCom + 0.7, Math.max(0.6, tCon - tCom - 0.3)), b2 = busca(tSal + 0.3, Math.max(0.6, tAnu - tSal - 0.5));
+    const ob = Math.max(b1, b2);
+    M.pon(lupa, { x: X1 - 20 + M.onda(t, 1.1, 40), y: Y1 - 10 + M.onda(t, 0.8, 30, 1), s: 0.95, r: -10, o: ob });
+    comp.poner(ob > 0 ? M.e(t, b1 > 0 ? tCom + 0.7 : tSal + 0.3, 0.5) : 0); M.opacidad(comp.g, ob);
+    M.ponAp(ok, { x: X1 + 62, y: Y1 - 80, o: 1 - M.e(t, tSal - 0.9, 0.3) }, M.aparicion(t, tCon + 0.4, 0.45));
+    ap(mal, { x: X1 + 62, y: Y1 - 80 }, t, tAnu - 0.5, 'pop', 0.45);
+    const golpe = M.e(t, tAnu, 0.35, 'inQuad');
+    M.pon(st, { x: X1, y: Y1 + 10, r: -14, s: M.lerp(2.4, 1, golpe) * (1 + 0.02 * M.onda(t, 1, 1)), o: t >= tAnu ? Math.min(1, golpe * 2) : 0 });
+  };
+});
+
+// ───────── Escena 7: de las elecciones al Gobierno ─────────
+M.escena(7, (E) => {
+  const g = E.g;
+  const tEnc = E.m('cómo encaja'), tCiu = E.m('la ciudadania'), tDip = E.m('elige a los diputados'), tCV = E.m('el Congreso vota'), tPre = E.m('presidente o presidenta'), tMin = E.m('elige a sus ministros'), tSale = E.m('sale del Congreso');
+  const X = [160, 477, 793, 1110], Y = 418, W = 240, H = 262;
+  const rTit = M.rotulo(g, '¿Y las elecciones?', { tam: 46, fondo: C.tinta });
+  const huecos = X.map((x) => { const h = M.el('rect', { x: x - W / 2, y: Y - H / 2, width: W, height: H, rx: 26, fill: 'none', stroke: C.gris, 'stroke-width': 4, 'stroke-dasharray': '10 10' }, g); return h; });
+  const tarjeta = (color, txt) => { const c = M.g(g); M.tarjeta(c, { ancho: W, alto: H, trazo: color, grosor: 5, radio: 26 }); M.texto(c, txt, { tam: 30, peso: 900, y: 95, color: C.tinta }); return c; };
+  const cards = [tarjeta(C.grisOsc, 'Ciudadanía'), tarjeta(LEG, 'Diputados'), tarjeta(EJE, 'Presidencia'), tarjeta(EJE, 'Ministros')];
+  // 1 ciudadanía
+  const ciud = M.gente(3, 707).map((o, i) => ({ p: M.persona(cards[0], { ...o, edad: 'adulto', lleva: 'papeleta' }), x: (i - 1) * 64, pies: i === 1 ? 46 : 56 }));
+  const urna = M.icono('urna', cards[0], { papeletas: 3 }); M.pon(urna, { x: 82, y: -70, s: 0.55 });
+  // 2 diputados
+  const hemi = M.hemiciclo(cards[1], { n: 60, cx: 0, cy: 46, rInt: 34, rExt: 96, filas: 4 });
+  const cab2 = M.rotulo(cards[1], 'Congreso', { tam: 26, fondo: LEG }); M.pon(cab2, { y: -H / 2 });
+  // 3 presidencia
+  const pres = M.persona(cards[2], { piel: M.PIEL[3], pelo: M.PELO[1], ropa: '#7D8597', peinado: 'largo' });
+  const est = M.svg(cards[2], M.estrellaPath(0, 0, 18, C.estrella, `stroke="${C.tinta}" stroke-width="3"`));
+  // 4 ministros
+  const mins = M.gente(4, 919).map((o, i) => ({ p: M.persona(cards[3], { ...o, edad: 'adulto' }), x: -78 + i * 52, ic: M.icono(['sanidad', 'escudo', 'mundo', 'colegio'][i], cards[3]) }));
+  const arcos = [[C.grisOsc, 'vota'], [LEG, 'el Congreso vota'], [EJE, 'elige']].map(([col, txt], i) => {
+    const f = M.flecha(g, { x1: X[i] + 40, y1: Y - H / 2 - 6, x2: X[i + 1] - 40, y2: Y - H / 2 - 6, curva: -150, color: col, grosor: 7 });
+    const r = M.rotulo(g, txt, { tam: 28, fondo: C.blanco, color: col, borde: col, grosor: 4 });
+    return { f, r, x: (X[i] + X[i + 1]) / 2 };
+  });
+  const papel = M.icono('papeleta', g);
+  const caja = M.g(g);
+  M.el('rect', { x: X[2] - W / 2 - 16, y: Y - H / 2 - 14, width: X[3] - X[2] + W + 32, height: H + 28, rx: 34, fill: EJE, 'fill-opacity': 0.08, stroke: EJE, 'stroke-width': 5, 'stroke-dasharray': '14 10' }, caja);
+  const rGob = M.rotulo(caja, 'Gobierno', { tam: 30, fondo: EJE }); M.pon(rGob, { x: (X[2] + X[3]) / 2, y: Y + H / 2 + 14 });
+  const rSale = M.rotulo(g, 'El Gobierno sale del Congreso', { tam: 40, fondo: C.tinta });
+  const TI = [tCiu, tDip, tPre, tMin];
+  const duda = M.icono('interrogacion', g);
+  return (t) => {
+    ap(rTit, { x: 640, y: 66 }, t, Math.max(0.5, tEnc - 0.3), 'sube');
+    apFuera(duda, { x: 640, y: 190 + M.onda(t, 1.6, 6), s: 1.05, r: M.onda(t, 1.2, 8) }, t, 0.6, tCiu - 0.6);
+    huecos.forEach((h, i) => M.ponAp(h, { o: 0.8 * (1 - M.e(t, (i === 0 ? Math.max(0.3, tCiu - 0.8) : TI[i] - 0.25), 0.3)) }, M.aparicion(t, 0.2 + i * 0.12, 0.5, 'fundido')));
+    cards.forEach((c, i) => ap(c, { x: X[i], y: Y + M.onda(t, 3, 3, i) }, t, i === 0 ? Math.max(0.3, tCiu - 0.8) : TI[i] - 0.25, 'pop', 0.6));
+    ciud.forEach((c, i) => { ponP(c.p, c.x, c.pies, 0.95, bamboleo(t, i)); M.brazo(c.p, 'd', M.lerp(-8, -150, M.e(t, tCiu + 0.2 + i * 0.12, 0.5, 'outBack'))); });
+    const llenos = Math.round(M.contador(t, tDip, 1.2, 0, 60, 'lineal'));
+    hemi.asientos.forEach((a, i) => a.setAttribute('fill', i < llenos ? LEG : C.grisClaro));
+    ponP(pres, 0, 60, 1.25, bamboleo(t, 4));
+    M.pon(est, { x: 0, y: -98 + M.onda(t, 2, 3), r: t * 30, s: M.e(t, tCV + 1.4, 0.5, 'outBack') });
+    mins.forEach((m, i) => { const a = M.aparicion(t, tMin + 0.2 + i * 0.12, 0.45, 'sube'); ponP(m.p, m.x, 66, 0.78, { o: a.o, dy: a.dy, ...bamboleo(t, i + 5) }); M.ponAp(m.ic, { x: m.x, y: -62 + M.onda(t, 2, 2, i), s: 0.3 }, M.aparicion(t, tMin + 0.6 + i * 0.12, 0.4)); });
+    const TA = [tCiu + 0.4, tCV, tMin - 0.2];
+    arcos.forEach((a, i) => { a.f.poner(M.e(t, TA[i], 0.7)); ap(a.r, { x: a.x, y: Y - H / 2 - 82 + M.onda(t, 2.5, 3, i) }, t, TA[i] + 0.3); });
+    // la papeleta viaja de la ciudadanía al Congreso
+    const pv = M.p(t, tCiu + 0.4, 0.8);
+    const bx = M.lerp(X[0] + 40, X[1] - 40, pv), by = Y - H / 2 - 6 - Math.sin(pv * Math.PI) * 75;
+    M.pon(papel, { x: bx, y: by, s: 0.42, r: pv * 360, o: pv > 0 && pv < 1 ? 1 : 0 });
+    ap(caja, {}, t, tSale - 0.3, 'fundido', 0.6);
+    ap(rSale, { x: 640, y: 628, s: 1 + 0.03 * M.onda(t, 1.2, 1) }, t, tSale - 0.1, 'sube');
+  };
+});
+
+// ───────── Escena 8: el rey ─────────
+M.escena(8, (E) => {
+  const g = E.g;
+  const T = triangulo(g);
+  const tRey = E.m('y el rey'), tMon = E.m('monarquía parlamentaria'), tJef = E.m('jefe del Estado'), tRep = E.m('representa a España'), tFir = E.m('firma las leyes'), tPro = E.m('propone al candidato'), tNo = E.m('Pero no gobierna ni'), tFr = E.m('el rey reina');
+  const tri = { x: 300, y: 372, s: 0.58 };
+  const XR = 690, YR = 270;
+  const cojin = M.g(g);
+  M.el('path', { d: 'M-80,16 Q-90,-8 -60,-14 L60,-14 Q90,-8 80,16 Q70,30 0,30 Q-70,30 -80,16Z', fill: '#8E6C8A', stroke: C.tinta, 'stroke-width': 4 }, cojin);
+  [-70, 70].forEach((x) => M.el('circle', { cx: x, cy: 18, r: 8, fill: C.estrella, stroke: C.tinta, 'stroke-width': 3 }, cojin));
+  const rayos = M.g(g);
+  for (let i = 0; i < 14; i++) { const a = (i * Math.PI) / 7; M.el('path', { d: `M${(80 * Math.cos(a)).toFixed(1)},${(80 * Math.sin(a)).toFixed(1)} L${(108 * Math.cos(a)).toFixed(1)},${(108 * Math.sin(a)).toFixed(1)}`, stroke: C.estrella, 'stroke-width': 8, 'stroke-linecap': 'round', opacity: 0.55 }, rayos); }
+  const corona = M.icono('corona', g);
+  const rJef = M.rotulo(g, 'Jefe del Estado', { tam: 32, fondo: '#8E6C8A' });
+  const rMon = M.rotulo(g, 'Monarquía parlamentaria', { tam: 46, fondo: '#8E6C8A' });
+  const sep = M.el('path', { d: 'M545,150 L545,600', stroke: C.gris, 'stroke-width': 4, 'stroke-dasharray': '2 14', 'stroke-linecap': 'round' }, g);
+  const sis = [['mundo', 'Representa a España', tRep], ['ley', 'Firma las leyes', tFir], ['grupo', 'Propone al candidato', tPro]].map(([ic, txt, t0]) => ({ f: ficha(g, ic, txt, { color: C.ok, ancho: 345, alto: 88, tam: 26, marca: true, sIcono: ic === 'ley' ? 0.5 : 0.52 }), t0 }));
+  const leyF = M.icono('ley', g, { color: LEG });
+  const firma = M.el('path', { d: 'M-18,32 q5,-12 9,-1 t9,-2 t10,-6', fill: 'none', stroke: '#3B5BA9', 'stroke-width': 2.5, 'stroke-linecap': 'round', pathLength: 1 }, leyF);
+  const noes = [['timon', 'No gobierna'], ['leyPluma', 'No hace leyes']].map(([ic, txt]) => ficha(g, ic, txt, { color: C.error, ancho: 320, alto: 72, tam: 27, marca: false, sIcono: 0.46 }));
+  const xs = [0, 1].map(() => M.marca(g, false, 26));
+  const rFr = M.rotulo(g, 'El rey reina, pero no gobierna', { tam: 42, fondo: C.tinta, pad: 32 });
+  return (t) => {
+    const p = M.e(t, 0.05, 0.9, 'inOutCubic');
+    T.colocar(M.lerp(330, tri.x, p), M.lerp(392, tri.y, p) + M.onda(t, 3.2, 3), M.lerp(0.6, tri.s, p));
+    T.lados(1);
+    const tenue = M.ventana(t, tNo - 0.2, tFr - 0.3, 0.3);
+    for (let i = 0; i < 3; i++) {
+      T.vert(i, { lleno: 1, halo: i < 2 ? tenue * 0.9 : 0, t });
+      T.etiq(i, 'nombre', 1, 0.82); T.etiq(i, 'tarea', 0);
+    }
+    ap(rMon, { x: 640, y: 66 }, t, tMon - 0.2, 'sube');
+    M.pon(sep, { o: M.e(t, tRey, 0.5) });
+    // corona apartada
+    const cae = M.e(t, tRey - 0.1, 0.9, 'outBounce');
+    M.pon(corona, { x: XR, y: M.lerp(-80, YR - 20, cae) + (cae >= 1 ? M.onda(t, 2.4, 4) : 0), s: 1.25, r: M.onda(t, 3, 3), o: t > tRey - 0.1 ? 1 : 0 });
+    ap(cojin, { x: XR, y: YR + 28 }, t, tRey - 0.3, 'sube');
+    M.pon(rayos, { x: XR, y: YR - 10, r: t * 10, s: M.e(t, tJef - 0.2, 0.6, 'outBack'), o: M.e(t, tJef - 0.2, 0.4) * 0.9 });
+    ap(rJef, { x: XR, y: YR + 110 }, t, tJef - 0.1);
+    sis.forEach((s, i) => { ap(s.f, { x: 1050, y: 210 + i * 116 + M.onda(t, 3, 2, i) }, t, s.t0 - 0.15, 'sube'); M.pon(s.f.marca, { x: s.f.ancho / 2 - 6, y: -s.f.alto / 2 + 6, s: M.e(t, s.t0 + 0.4, 0.4, 'outBack') }); });
+    // una ley va del legislativo a la corona y se firma
+    const [lx, ly] = T.pos(0);
+    const ida = M.e(t, tFir - 0.3, 0.8, 'inOutCubic');
+    const sale = M.e(t, tPro - 0.2, 0.5);
+    M.pon(leyF, { x: M.lerp(lx, XR + 12, ida), y: M.lerp(ly, YR + 50, ida) - Math.sin(ida * Math.PI) * 60, s: M.lerp(0.4, 0.95, ida), r: -8 + M.onda(t, 3, 2), o: (t > tFir - 0.3 ? 1 : 0) * (1 - sale) });
+    firma.setAttribute('stroke-dasharray', `${M.e(t, tFir + 0.6, 0.6).toFixed(3)} 2`);
+    // no gobierna ni hace leyes
+    noes.forEach((n, i) => {
+      const t0 = tNo + 0.1 + i * 0.35;
+      ap(n, { x: XR, y: 452 + i * 84 + M.onda(t, 3, 2, i) }, t, t0, 'sube');
+      M.pon(n.marca, { x: n.ancho / 2 - 6, y: -n.alto / 2 + 6, s: M.e(t, t0 + 0.4, 0.4, 'outBack') });
+      const [vx, vy] = T.pos(1 - i);
+      M.ponAp(xs[i], { x: vx + 40, y: vy - 40, s: 1 + 0.08 * M.onda(t, 0.8, 1) }, M.aparicion(t, t0 + 0.3, 0.4));
+    });
+    ap(rFr, { x: 640, y: 628, s: 1 + 0.03 * M.onda(t, 1.2, 1) }, t, tFr - 0.1, 'sube');
+  };
+});
+
+// ───────── Escena 9: la idea se repite en pequeño + para y piensa ─────────
+M.escena(9, (E) => {
+  const g = E.g;
+  const tRep = E.m('se repite'), tCM = E.m('Comunidad de Madrid'), tAs = E.m('su Asamblea'), tSG = E.m('y su gobierno'), tAy = E.m('el ayuntamiento'), tPl = E.m('su pleno'), tAl = E.m('su alcaldia'), tPara = E.m('Para el vídeo'), tQue = E.m('qué poder');
+  const fase1 = M.g(g);
+  const COL = [
+    { x: 228, color: C.estado, nombre: 'España', icono: 'edificio', s: 0.46, et: ['Cortes', 'Gobierno', 'Jueces'], t: [0.65, 0.8, 0.95], tc: 0.45, th: tRep },
+    { x: 640, color: C.ccaa, nombre: 'Comunidad de Madrid', icono: 'cupula', s: 0.4, et: ['Asamblea', 'Gobierno', null], t: [tAs, tSG, null], tc: 0.75, th: tCM },
+    { x: 1052, color: C.ayto, nombre: 'Ayuntamiento', icono: 'ayuntamiento', s: 0.35, et: ['Pleno', 'Alcaldía', null], t: [tPl, tAl, null], tc: 1.05, th: tAy },
+  ];
+  const cols = COL.map((c) => {
+    const k = M.g(fase1);
+    M.el('rect', { x: -184, y: -255, width: 368, height: 510, rx: 28, fill: C.blanco, stroke: c.color, 'stroke-width': 6 }, k);
+    const cab = M.rotulo(k, c.nombre, { tam: 30, fondo: c.color, color: c.color === C.ayto ? C.tinta : C.blanco }); M.pon(cab, { y: -255 });
+    const T = triangulo(k);
+    T.vs.forEach((V, i) => { if (!c.et[i]) return; V.mini = M.rotulo(k, c.et[i], { tam: 26, fondo: POD[i].color }); });
+    const ed = M.icono(c.icono, k);
+    return { k, T, ed, c };
+  });
+  const rRep = M.rotulo(fase1, 'Se repite en pequeño', { tam: 34, fondo: C.tinta });
+  // fase 2: para y piensa
+  const fase2 = M.g(g);
+  M.el('rect', { x: 0, y: 600, width: 1280, height: 300, fill: C.arena }, fase2);
+  const cab = M.g(fase2);
+  M.pon(M.icono('pausa', cab), { x: -225, s: 0.85 });
+  M.texto(cab, 'Para y piensa', { tam: 54, peso: 900, x: 40 });
+  const jz = juez(fase2, { piel: M.PIEL[0], pelo: M.PELO[3], peinado: 'coleta' });
+  const est = M.g(fase2);
+  M.el('rect', { x: -150, y: 0, width: 300, height: 150, rx: 8, fill: '#B98B62', stroke: C.tinta, 'stroke-width': 4 }, est);
+  M.el('rect', { x: -164, y: -12, width: 328, height: 20, rx: 6, fill: C.tronco, stroke: C.tinta, 'stroke-width': 4 }, est);
+  const mazo = M.icono('mazo', fase2);
+  const preg = M.g(fase2);
+  M.tarjeta(preg, { ancho: 640, alto: 170, trazo: C.ayto, grosor: 6, radio: 28 });
+  M.texto(preg, '¿Qué poder tiene un juez que decide en un juicio?', { tam: 40, peso: 900, max: 560 });
+  const opc = POD.map((p) => { const o = M.g(fase2); M.el('circle', { r: 62, fill: p.color, stroke: C.tinta, 'stroke-width': 5 }, o); M.el('circle', { r: 49, fill: '#fff' }, o); M.pon(M.icono(p.icono, o), { s: 0.72 }); M.texto(o, p.nombre, { tam: 28, peso: 900, y: 92 }); return o; });
+  const interr = M.icono('interrogacion', fase2);
+  return (t) => {
+    const fuera = M.e(t, tPara - 0.5, 0.45);
+    M.pon(fase1, { o: 1 - fuera });
+    M.pon(fase2, { o: M.e(t, tPara - 0.2, 0.4) });
+    if (fuera < 1) {
+      ap(rRep, { x: 640, y: 640 - 8 }, t, tRep, 'sube');
+      cols.forEach(({ k, T, ed, c }, j) => {
+        const a = M.aparicion(t, c.tc, 0.6, 'sube');
+        M.ponAp(k, { x: c.x, y: 345 + M.onda(t, 3.2, 3, j), s: 1 + 0.05 * M.ventana(t, c.th - 0.1, c.th + 1.0, 0.3) }, a);
+        T.colocar(0, -10, c.s);
+        T.lados(M.e(t, c.tc + 0.2, 0.6));
+        M.opacidad(T.area, 0.5);
+        for (let i = 0; i < 3; i++) {
+          const ti = c.t[i];
+          const on = ti === null ? 0 : M.e(t, ti - 0.1, 0.5);
+          T.vert(i, { lleno: on, icono: ti === null ? 0 : on, preg: 0, halo: ti === null ? 0 : 0.8 * M.ventana(t, ti, ti + 0.9, 0.25), t });
+          M.opacidad(T.vs[i].vacio, ti === null ? 0.7 : 1 - on);
+          T.etiq(i, 'tarea', 0); T.etiq(i, 'nombre', 0);
+          const V = T.vs[i];
+          if (V.mini) { const [x, y] = T.pos(i); M.ponAp(V.mini, { x, y: y + 74 * c.s + 24 }, M.aparicion(t, ti, 0.4)); }
+        }
+        M.pon(ed, { y: 190, s: 0.75 + 0.03 * M.onda(t, 2, 1, j) });
+      });
+    }
+    if (t > tPara - 0.4) {
+      ap(cab, { x: 640, y: 80 }, t, tPara - 0.2, 'sube');
+      ponP(jz.g, 280, 540, 1.7, bamboleo(t, 0));
+      const golpe = Math.max(0, Math.sin(t * 4)) * M.e(t, tPara, 0.3);
+      M.brazo(jz.p, 'd', -70 + golpe * 30);
+      M.pon(est, { x: 280, y: 495 });
+      M.pon(mazo, { x: 372, y: 448, s: 0.6, r: -30 + golpe * 40 });
+      ap(preg, { x: 830, y: 260, r: M.onda(t, 4, 0.8) }, t, tQue - 0.3);
+      opc.forEach((o, i) => ap(o, { x: 640 + i * 190, y: 455, s: 1 + 0.1 * Math.max(0, Math.sin(t * 2.2 - i * 1.2)) }, t, tQue + 0.4 + i * 0.2));
+      ap(interr, { x: 470, y: 230, s: 0.7, r: M.onda(t, 1.2, 10) }, t, tQue);
+    }
+  };
+});
+
+// ───────── Escena 10: repaso ─────────
+M.escena(10, (E) => {
+  const g = E.g;
+  const tRe = E.m('Repasamos'), t1 = E.m('Uno:'), t2 = E.m('Dos:'), t3 = E.m('Tres:'), tY = E.m('Y ahora');
+  const tC = E.m('las Cortes'), tG = E.m('el Gobierno gobierna'), tJ = E.m('los jueces juzgan'), tCE = E.m('el Congreso elige'), tRey = E.m('el rey es');
+  const T = triangulo(g);
+  const tri = { x: 225, y: 300, s: 0.46 };
+  const flechaCE = M.flecha(g, { x1: tri.x - 48, y1: tri.y - 98, x2: tri.x - 140, y2: tri.y + 24, color: LEG, grosor: 6, curva: 34 });
+  const corona = M.icono('corona', g);
+  const noG = M.marca(g, false, 20);
+  // ideas clave (tamaño ajustado para dejar sitio al triángulo)
+  const XC = 832, AN = 776, TAM = 27;
+  const titulo = M.texto(g, 'Repasamos', { tam: 52, peso: 900 });
+  const cols = [LEG, EJE, '#8E6C8A'];
+  const tarjetas = E.datos.ideas.map((idea, i) => {
+    const gg = M.g(g);
+    const txt = M.texto(null, idea, { tam: TAM, peso: 750, max: AN - 150, anchor: 'start' });
+    const h = Math.max(100, txt.alto + 34);
+    M.el('rect', { x: -AN / 2, y: -h / 2, width: AN, height: h, rx: 24, fill: C.blanco, stroke: cols[i], 'stroke-width': 6 }, gg);
+    M.el('circle', { cx: -AN / 2 + 56, r: 32, fill: cols[i] }, gg);
+    M.texto(gg, String(i + 1), { tam: 40, peso: 900, x: -AN / 2 + 56, y: 2, color: C.blanco });
+    M.texto(gg, idea, { tam: TAM, peso: 750, max: AN - 150, anchor: 'start', x: -AN / 2 + 108 });
+    return { gg, h };
+  });
+  const rPreg = M.rotulo(g, '¡Ahora, unas preguntas!', { tam: 34, fondo: C.ok });
+  const TI = [t1, t2, t3];
+  return (t) => {
+    T.colocar(tri.x, tri.y + M.onda(t, 3.2, 3), tri.s);
+    T.lados(M.e(t, 0.1, 0.8));
+    const TV = [tC, tG, tJ];
+    for (let i = 0; i < 3; i++) {
+      const a = M.aparicion(t, 0.1 + i * 0.12, 0.5);
+      T.vert(i, { o: a.o, s: a.s * (1 + 0.15 * M.ventana(t, TV[i] - 0.1, TV[i] + 0.8, 0.25)), lleno: 1, halo: 0.9 * M.ventana(t, TV[i] - 0.1, TV[i] + 0.8, 0.25), t });
+      T.etiq(i, 'tarea', 0); T.etiq(i, 'nombre', M.e(t, 0.4 + i * 0.1, 0.4), 0.8);
+    }
+    flechaCE.poner(M.e(t, tCE, 0.6));
+    ap(corona, { x: tri.x, y: 545 + M.onda(t, 2.4, 4), s: 0.95, r: M.onda(t, 3, 3) }, t, tRey - 0.2, 'cae', 0.8);
+    ap(noG, { x: tri.x + 52, y: 520 }, t, tRey + 1.2, 'pop', 0.4);
+    M.ponAp(titulo, { x: XC, y: 72 }, M.aparicion(t, Math.max(0.5, tRe - 0.2), 0.5, 'sube'));
+    let y = 128;
+    tarjetas.forEach((c, i) => { M.ponAp(c.gg, { x: XC + M.onda(t, 6, 3, i), y: y + c.h / 2 }, M.aparicion(t, TI[i], 0.6, 'sube')); y += c.h + 18; });
+    ap(rPreg, { x: XC, y: Math.max(y + 30, 600) }, t, tY, 'sube');
+  };
+});
+
+M.cabecera({ iconos: ['leyPluma', 'timon', 'balanza', 'corona'] });
+M.iniciar();
+</script>
+</body>
+</html>

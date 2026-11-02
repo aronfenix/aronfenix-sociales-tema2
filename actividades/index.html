@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2B2D42">
+<title>Actividades · Sociales 5.º · Un voto de confianza</title>
+<link rel="preload" href="../assets/fonts/nunito-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/css/estilos.css">
+</head>
+<body class="pagina-actividades">
+<header class="barra">
+  <a href="../index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>Inicio</a>
+  <span class="barra-tema">Sociales 5.º · Un voto de confianza</span>
+</header>
+<main class="contenedor">
+  <div class="intro-actividades">
+    <p class="antetitulo">Tema 2 · Actividades</p>
+    <h1>Pon a prueba lo que sabes</h1>
+    <p>Cinco bloques de preguntas, uno por vídeo. Si fallas, te diremos en qué minuto del vídeo está la respuesta.</p>
+  </div>
+  <ul class="lista-actividades" id="lista"></ul>
+</main>
+<script src="../assets/js/motor.js"></script>
+<script>
+(function () {
+  var lista = document.getElementById('lista');
+  var ok = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.6l4.4 4.4L19.2 7.4" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function texto(tag, clase, t) { var n = document.createElement(tag); if (clase) n.className = clase; n.textContent = t; return n; }
+  Motor.cargarDatos().then(function (d) {
+    var videos = (d.guiones && d.guiones.videos) || [1, 2, 3, 4, 5].map(function (i) { return { id: i, titulo: 'Vídeo ' + i, subtitulo: '' }; });
+    videos.forEach(function (g) {
+      var e = Motor.progreso.estado(g.id);
+      var li = document.createElement('li');
+      var tarjeta = document.createElement('div');
+      tarjeta.className = 'tarjeta-actividad';
+      var cima = document.createElement('div'); cima.className = 'cima';
+      var ins = document.createElement('div'); ins.className = 'insignia-video'; ins.innerHTML = Motor.iconos['video' + g.id] || '';
+      var tx = document.createElement('div');
+      tx.appendChild(texto('p', 'antetitulo', 'Vídeo ' + g.id));
+      tx.appendChild(texto('h2', '', g.titulo));
+      tx.appendChild(texto('p', 'subtitulo', g.subtitulo));
+      cima.appendChild(ins); cima.appendChild(tx);
+      var est = document.createElement('span');
+      var icono = document.createElement('span'); icono.className = 'icono-redondo';
+      if (e.completado) { est.className = 'estado-actividad completa'; icono.innerHTML = ok; est.appendChild(icono); est.appendChild(document.createTextNode('Hecha · ' + e.mejor + ' de ' + e.total + ' a la primera')); }
+      else if (e.superadas) { est.className = 'estado-actividad empezada'; est.appendChild(icono); est.appendChild(document.createTextNode('Empezada · ' + e.superadas + ' de 5')); }
+      else { est.className = 'estado-actividad'; est.appendChild(icono); est.appendChild(document.createTextNode('Sin hacer')); }
+      var pie = document.createElement('div'); pie.className = 'pie';
+      var a = document.createElement('a'); a.className = 'boton boton-principal'; a.href = 'actividad.html?v=' + g.id;
+      a.textContent = e.completado ? 'Repetir preguntas' : 'Hacer preguntas';
+      var b = document.createElement('a'); b.className = 'boton boton-secundario'; b.href = '../leccion.html?v=' + g.id;
+      b.textContent = 'Ver vídeo';
+      pie.appendChild(a); pie.appendChild(b);
+      tarjeta.appendChild(cima); tarjeta.appendChild(est); tarjeta.appendChild(pie);
+      li.appendChild(tarjeta); lista.appendChild(li);
+    });
+  }).catch(function () {
+    lista.appendChild(texto('li', 'motor-error', 'No se ha podido cargar la lista de actividades.'));
+  });
+})();
+</script>
+</body>
+</html>

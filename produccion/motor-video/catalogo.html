@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>Catálogo de iconos del motor de vídeo</title>
+<link rel="stylesheet" href="comun.css">
+<style>body{background:#FBF6EC;margin:0} svg{display:block}</style>
+</head><body>
+<script src="comun.js"></script>
+<script src="iconos.js"></script>
+<script>
+// Hoja de iconos: ábrela en el navegador (o captúrala con Playwright) para ver qué hay disponible.
+// ?pagina=2 para la segunda hoja (personas y componentes).
+(async () => {
+  await document.fonts.load('900 40px Nunito');
+  const pag = new URLSearchParams(location.search).get('pagina') || '1';
+  const svg = M.el('svg', { viewBox: '0 0 1280 800', width: 1280, height: 800 }, document.body);
+  M.el('rect', { width: 1280, height: 800, fill: M.C.crema }, svg);
+  if (pag === '1') {
+    const nombres = M.listaIconos().filter((n) => !['persona', 'uniforme'].includes(n));
+    const cols = 12, cw = 1280 / cols, ch = 800 / Math.ceil(nombres.length / cols);
+    nombres.forEach((n, i) => {
+      const x = (i % cols) * cw + cw / 2, y = Math.floor(i / cols) * ch + ch / 2 - 10;
+      const opc = { logo: { tipo: ['parque', 'aparcamiento', 'pista'][i % 3] }, calendario: { mes: 'DIC', dia: 6 }, libro: { titulo: 'Título' }, farola: { encendida: true }, urna: { papeletas: 5 } }[n] || {};
+      const ic = M.icono(n, svg, opc); M.pon(ic, { x, y, s: Math.min(cw, ch) / 125 });
+      if (n === 'reloj') M.ponHora(ic, 9, 0);
+      M.texto(svg, n, { x, y: y + ch / 2 - 4, tam: 13, peso: 800 });
+    });
+  } else {
+    const gente = M.gente(10, 5);
+    gente.forEach((o, i) => { const p = M.persona(svg, o); M.pon(p, { x: 70 + i * 120, y: 120, s: 1.4 }); });
+    const extra = [{ silla: true, ropa: '#8CC0DE' }, { uniforme: true, ropa: '#6B705C', serio: true }, { edad: 'mayor', peinado: 'calvo' }, { edad: 'nino', peinado: 'coleta', ropa: '#F2A65A' }, { lleva: 'papeleta', brazoD: -150 }, { lleva: 'megafono', brazoD: -60 }, { cara: false, peinado: 'largo' }];
+    extra.forEach((o, i) => { const p = M.persona(svg, o); M.pon(p, { x: 70 + i * 120, y: 310, s: 1.4 }); M.texto(svg, Object.keys(o).join(','), { x: 70 + i * 120, y: 400, tam: 13 }); });
+    ['municipio', 'provincia', 'comunidad', 'estado', 'ue'].forEach((k, i) => { const m = M.icono('muneca', svg, { color: M.NIVELES[k].color }); M.pon(m, { x: 920 + i * 70, y: 330, s: 0.6 + i * 0.12 }); });
+    const h = M.hemiciclo(svg, { n: 350, cx: 250, cy: 760, rInt: 90, rExt: 210 });
+    h.asientos.forEach((a, i) => a.setAttribute('fill', i < 176 ? M.C.estado : M.C.grisClaro));
+    const cal = M.calendarioMes(svg, { anio: 1978, mes: 12, ancho: 300 }); M.pon(cal.g, { x: 640, y: 610 });
+    cal.dias[6].fondo.setAttribute('fill', M.C.ayto);
+    const r = M.rotulo(svg, 'Rótulo de ejemplo', { tam: 36, fondo: M.C.estado }); M.pon(r, { x: 1010, y: 480 });
+    const b = M.bocadillo(svg, { ancho: 200, alto: 110, colaX: -40, colaY: 100 }); M.pon(b, { x: 1010, y: 610 });
+    const f = M.flecha(svg, { x1: 880, y1: 720, x2: 1180, y2: 720, curva: -40, color: M.C.ccaa }); f.poner(1);
+  }
+  window.LISTO = true;
+})();
+</script>
+</body></html>

@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Vídeo 5 · La Unión Europea</title>
+<link rel="stylesheet" href="../motor-video/comun.css">
+</head>
+<body>
+<script src="../motor-video/comun.js"></script>
+<script src="../motor-video/iconos.js"></script>
+<script src="../motor-video/mapas/europa.js"></script>
+<script src="../motor-video/datos/v5.js"></script>
+<script>
+'use strict';
+const C = M.C;
+const K = C.tinta;
+const UE = C.ue, ORO = C.estrella;
+const ap = (el, base, t, t0, tipo = 'pop', dur = 0.55) => M.ponAp(el, base, M.aparicion(t, t0, dur, tipo));
+/** Coloca una persona con los pies en (x, pies). */
+const ponP = (el, x, pies, s = 1, extra = {}) => M.pon(el, { x, y: pies - 50 * s, s, ...extra });
+const bamboleo = (t, i) => ({ dy: M.onda(t, 1.7 + (i % 3) * 0.23, 2.2, i * 1.3), r: M.onda(t, 2.9 + (i % 2) * 0.5, 1.3, i * 2.1) });
+const SW = (w = 3.5, c = K) => `stroke="${c}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+const txtSvg = (s, x, y, tam, color = K, peso = 900) => `<text x="${x}" y="${y}" font-size="${tam}" font-weight="${peso}" fill="${color}" text-anchor="middle" dominant-baseline="central">${s}</text>`;
+/** Icono reflejado en horizontal (M.pon no admite escalas negativas). */
+const espejo = (nombre, padre, o = {}) => { const g = M.g(padre); M.icono(nombre, M.g(g, { transform: 'scale(-1 1)' }), o); return g; };
+/** Desaparición: 1 → 0 a partir de t0. */
+const fuera = (t, t0, dur = 0.4) => 1 - M.e(t, t0, dur);
+
+// ───────── Estrella de 5 puntas regular (una punta hacia arriba) ─────────
+const estrella5 = (cx, cy, r, fill, extra = '') => {
+  let d = '';
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5; const rr = i % 2 ? r * 0.382 : r; d += (i ? 'L' : 'M') + (cx + rr * Math.cos(a)).toFixed(2) + ',' + (cy + rr * Math.sin(a)).toFixed(2); }
+  return `<path d="${d}Z" fill="${fill}" ${extra}/>`;
+};
+
+/**
+ * Bandera de la UE dibujada según su diseño: proporción 3:2, 12 estrellas doradas de 5 puntas,
+ * en círculo de radio = 1/3 de la altura, cada estrella de radio = 1/18 de la altura, todas derechas,
+ * en la posición de las horas de un reloj. Centrada en (0,0).
+ */
+function bandera(padre, h, o = {}) {
+  const w = h * 1.5; const g = M.g(padre);
+  const fondo = M.el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: Math.max(3, h * 0.025), fill: UE, stroke: o.trazo || K, 'stroke-width': o.grosor === undefined ? 4 : o.grosor }, g);
+  const R = h / 3, r = h / 18;
+  const estrellas = [];
+  for (let i = 0; i < 12; i++) {
+    const a = (i * Math.PI) / 6; const x = R * Math.sin(a), y = -R * Math.cos(a);
+    const sg = M.svg(g, estrella5(0, 0, r, ORO));
+    M.pon(sg, { x, y });
+    estrellas.push({ g: sg, x, y });
+  }
+  return { g, w, h, R, r, estrellas, fondo };
+}
+M.registrarIcono('banderaUEv5', () => { const h = 60, w = 90; let e = ''; for (let i = 0; i < 12; i++) { const a = (i * Math.PI) / 6; e += estrella5(20 * Math.sin(a), -20 * Math.cos(a), h / 18, ORO); } return `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="${UE}" ${SW(3)}/>${e}`; });
+
+// ───────── Muñeca rusa que se abre (dos mitades) ─────────
+const MUN_D = 'M0,-50 Q-24,-50 -26,-24 Q-27,-14 -22,-8 Q-38,10 -36,30 Q-34,50 0,50 Q34,50 36,30 Q38,10 22,-8 Q27,-14 26,-24 Q24,-50 0,-50Z';
+let clipsMun = false;
+function munecaPartida(padre, color, opc = {}) {
+  if (!clipsMun) {
+    clipsMun = true;
+    M.el('rect', { x: -70, y: -70, width: 140, height: 70.6 }, M.el('clipPath', { id: 'v5-mun-arriba', clipPathUnits: 'userSpaceOnUse' }, M.defs));
+    M.el('rect', { x: -70, y: 0, width: 140, height: 70 }, M.el('clipPath', { id: 'v5-mun-abajo', clipPathUnits: 'userSpaceOnUse' }, M.defs));
+    M.el('path', { d: MUN_D }, M.el('clipPath', { id: 'v5-mun-cuerpo', clipPathUnits: 'userSpaceOnUse' }, M.defs));
+  }
+  const g = M.g(padre);
+  const abajo = M.g(g);
+  M.icono('muneca', M.g(abajo, { 'clip-path': 'url(#v5-mun-abajo)' }), { color, ...opc });
+  const hueco = M.el('ellipse', { cx: 0, cy: 0, rx: 30, ry: 5, fill: M.oscurece(color, 0.45) }, abajo);
+  M.el('path', { d: 'M-40,0 L40,0', stroke: M.oscurece(color, 0.35), 'stroke-width': 3, 'clip-path': 'url(#v5-mun-cuerpo)' }, abajo);
+  const arriba = M.g(g);
+  M.icono('muneca', M.g(arriba, { 'clip-path': 'url(#v5-mun-arriba)' }), { color, ...opc });
+  return {
+    g, arriba, abajo,
+    /** p: 0 cerrada … 1 abierta (la mitad de arriba sube y se inclina). */
+    abrir(p) { M.pon(arriba, { y: -p * 40, x: p * 8, r: -p * 16 }); M.opacidad(hueco, p > 0.02 ? 1 : 0); },
+  };
+}
+M.registrarIcono('munecaUE', () => M.iconos.muneca({ color: UE, texto: 'UE', tamTexto: 15 }));
+
+// ───────── Mapa de Europa recortado ─────────
+let nRec = 0;
+const EUROPA = window.MAPA_EUROPA;
+const datosPais = (id) => EUROPA.paises.find((p) => p.id === id);
+function mapaEuropa(padre, opc = {}) {
+  const ext = M.g(padre);
+  const id = 'v5-rec-eu-' + (++nRec);
+  M.el('rect', { width: 1000, height: 820, rx: 20 }, M.el('clipPath', { id }, M.defs));
+  const interior = M.g(ext, { 'clip-path': `url(#${id})` });
+  const m = M.mapas.europa(interior, opc);
+  M.el('rect', { width: 1000, height: 820, rx: 20, fill: 'none', stroke: C.gris, 'stroke-width': 3 }, ext);
+  m.ext = ext; m.interior = interior; m.capa = M.g(ext);
+  return m;
+}
+/** Escala un país alrededor de su etiqueta (para el «pop» al colorearlo). */
+const popPais = (p, k) => p.path.setAttribute('transform', k === 1 ? '' : `translate(${p.et[0]} ${p.et[1]}) scale(${k.toFixed(3)}) translate(${-p.et[0]} ${-p.et[1]})`);
+/** Silueta de un país (de europa.js) centrada en (0,0) con altura `alto`. */
+function silueta(padre, id, alto, color, trazo = K) {
+  const p = datosPais(id); const [x, y, w, h] = p.caja; const s = alto / h;
+  const g = M.g(padre); const inner = M.g(g, { transform: `scale(${s.toFixed(4)}) translate(${(-(x + w / 2)).toFixed(1)} ${(-(y + h / 2)).toFixed(1)})` });
+  M.el('path', { d: p.d, fill: color, stroke: trazo, 'stroke-width': (3 / s).toFixed(2), 'stroke-linejoin': 'round' }, inner);
+  g.ancho = w * s; g.alto = alto;
+  return g;
+}
+
+// ───────── Monedas de euro genéricas (motivos inventados) ─────────
+const METAL = { oro: '#E2B650', plata: '#D3D9E2', cobre: '#C7804F' };
+const MOTIVOS = {
+  arbol: (c) => `<circle cx="0" cy="-7" r="13" fill="${c}"/><circle cx="-11" cy="1" r="9" fill="${c}"/><circle cx="11" cy="1" r="9" fill="${c}"/><rect x="-3" y="2" width="6" height="18" rx="2" fill="${c}"/>`,
+  barco: (c) => `<path d="M-21,5 L21,5 L13,16 L-13,16Z" fill="${c}"/><path d="M-1,2 L-1,-21 L15,0Z" fill="${c}"/><path d="M-5,0 L-5,-14 L-17,0Z" fill="${c}"/><path d="M-22,22 Q-16,18 -10,22 Q-4,26 2,22 Q8,18 14,22 Q18,25 22,22" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`,
+  castillo: (c) => `<path d="M-20,20 L-20,-6 L-20,-14 L-14,-14 L-14,-8 L-8,-8 L-8,-14 L-2,-14 L-2,-8 L2,-8 L2,-14 L8,-14 L8,-8 L14,-8 L14,-14 L20,-14 L20,20Z" fill="${c}"/><path d="M-5,20 L-5,8 Q0,2 5,8 L5,20Z" fill="#fff" opacity=".55"/>`,
+  pajaro: (c) => `<path d="M-22,-2 Q-12,-16 -2,-4 Q8,-18 22,-8 Q10,-4 4,6 Q-2,14 -12,10 Q-18,8 -22,-2Z" fill="${c}"/><circle cx="-13" cy="-4" r="2.2" fill="#fff"/><path d="M-6,12 L-8,20 M2,10 L2,18" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`,
+  sol: (c) => `<circle r="10" fill="${c}"/>` + Array.from({ length: 8 }, (_, i) => { const a = (i * Math.PI) / 4; return `<path d="M${(15 * Math.cos(a)).toFixed(1)},${(15 * Math.sin(a)).toFixed(1)} L${(22 * Math.cos(a)).toFixed(1)},${(22 * Math.sin(a)).toFixed(1)}" stroke="${c}" stroke-width="4" stroke-linecap="round"/>`; }).join(''),
+  flor: (c) => Array.from({ length: 5 }, (_, i) => { const a = (i * 2 * Math.PI) / 5 - Math.PI / 2; return `<ellipse cx="${(11 * Math.cos(a)).toFixed(1)}" cy="${(11 * Math.sin(a)).toFixed(1)}" rx="8" ry="8" fill="${c}"/>`; }).join('') + `<circle r="6" fill="#fff" opacity=".6"/>`,
+};
+const MONEDAS = [
+  { v: '2', u: 'EURO', ext: 'plata', int: 'oro', motivo: 'arbol' },
+  { v: '1', u: 'EURO', ext: 'oro', int: 'plata', motivo: 'barco' },
+  { v: '50', u: 'CENT', ext: 'oro', motivo: 'castillo' },
+  { v: '20', u: 'CENT', ext: 'oro', motivo: 'pajaro' },
+  { v: '10', u: 'CENT', ext: 'oro', motivo: 'sol' },
+  { v: '5', u: 'CENT', ext: 'cobre', motivo: 'flor' },
+];
+function moneda(padre, m) {
+  const g = M.g(padre); const giro = M.g(g);
+  const ext = METAL[m.ext], int = m.int ? METAL[m.int] : ext;
+  const oscE = M.oscurece(ext, 0.3), osc = M.oscurece(int, 0.4);
+  const base = `<circle r="46" fill="${ext}" ${SW(3.5)}/>` + (m.int ? `<circle r="29" fill="${int}" stroke="${oscE}" stroke-width="2.5"/>` : `<circle r="38" fill="none" stroke="${oscE}" stroke-width="2.5"/>`);
+  let puntos = ''; for (let i = 0; i < 16; i++) { const a = (i * Math.PI) / 8; puntos += `<circle cx="${(m.int ? 37.5 : 42) * Math.cos(a)}" cy="${(m.int ? 37.5 : 42) * Math.sin(a)}" r="2" fill="${oscE}"/>`; }
+  const brillo = `<path d="M-30,-26 A40,40 0 0 1 -6,-40" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".55"/>`;
+  const cara = M.svg(giro, base + txtSvg(m.v, 0, m.v.length > 1 ? -5 : -6, m.v.length > 1 ? 30 : 34, M.oscurece(int, 0.55)) + txtSvg(m.u, 0, 17, 10, M.oscurece(int, 0.55)) + brillo);
+  const cruz = M.svg(giro, base + puntos + `<g transform="scale(${m.int ? 1 : 1.3})">${MOTIVOS[m.motivo](osc)}</g>` + brillo);
+  M.opacidad(cruz, 0);
+  return {
+    g, giro, cara, cruz,
+    /** p: 0 = cara común; 1 = cara nacional (motivo). */
+    voltear(p) { const c = Math.cos(Math.PI * M.clamp(p)); M.pon(giro, { sx: Math.max(0.03, Math.abs(c)) }); M.opacidad(cara, c >= 0 ? 1 : 0); M.opacidad(cruz, c < 0 ? 1 : 0); },
+  };
+}
+/** Moneda grande genérica de euro (bimetálica con €). */
+M.registrarIcono('euroGrande', () => {
+  let p = ''; for (let i = 0; i < 24; i++) { const a = (i * Math.PI) / 12; p += `<circle cx="${(39 * Math.cos(a)).toFixed(1)}" cy="${(39 * Math.sin(a)).toFixed(1)}" r="1.6" fill="${M.oscurece(METAL.oro, 0.3)}"/>`; }
+  return `<circle r="47" fill="${METAL.oro}" ${SW(3)}/>${p}<circle r="31" fill="${METAL.plata}" stroke="${M.oscurece(METAL.oro, 0.3)}" stroke-width="2.5"/>` +
+    txtSvg('€', -1, 2, 40, C.grisOsc) + `<path d="M-34,-24 A42,42 0 0 1 -10,-40" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".6"/>`;
+});
+
+// ───────── Iconos propios ─────────
+M.registrarIcono('monederoCuerpo', () => `<ellipse cx="0" cy="-8" rx="44" ry="9" fill="#5A2F2C"/>` +
+  `<path d="M-48,-8 L48,-8 Q54,40 28,46 L-28,46 Q-54,40 -48,-8Z" fill="#B8645C" ${SW()}/>` +
+  `<path d="M-40,2 L40,2 Q45,33 24,38 L-24,38 Q-45,33 -40,2Z" fill="none" stroke="#E2A99B" stroke-width="2.5" stroke-dasharray="5 5"/>` +
+  `<circle cx="0" cy="20" r="6" fill="${METAL.oro}" ${SW(2.5)}/>`);
+/** Tapa del monedero con la bisagra en (0,0) (esquina izquierda). */
+M.registrarIcono('monederoTapa', () => `<path d="M0,0 Q-2,-34 48,-36 Q98,-34 96,0Z" fill="#A4544D" ${SW()}/>` +
+  `<path d="M6,-4 Q8,-28 48,-30 Q88,-28 90,-4" fill="none" stroke="#C47A6A" stroke-width="3"/>` +
+  `<rect x="-2" y="-5" width="100" height="8" rx="4" fill="${METAL.oro}" ${SW(2.5)}/><circle cx="90" cy="-8" r="5" fill="${METAL.oro}" ${SW(2.5)}/>`);
+M.registrarIcono('derechos', () => `<path d="M0,-46 L38,-32 L38,0 Q38,32 0,46 Q-38,32 -38,0 L-38,-32Z" fill="${M.aclara(UE, 0.75)}" ${SW()}/>` +
+  `<g transform="translate(0 6) scale(.62)">${M.iconos.grupo({})}</g><g transform="translate(0 -30) scale(.22)">${M.iconos.corazon({})}</g>`);
+M.registrarIcono('pin', (o) => `<path d="M0,40 Q-30,4 -30,-12 A30,30 0 1 1 30,-12 Q30,4 0,40Z" fill="${o.color || UE}" ${SW(4)}/><circle cy="-12" r="11" fill="#fff" ${SW(3)}/>`);
+M.registrarIcono('consejoEuropeo', () => {
+  let p = ''; const n = 7;
+  for (let i = 0; i < n; i++) { const a = Math.PI + (Math.PI * (i + 0.5)) / n; const x = 40 * Math.cos(a), y = 6 + 22 * Math.sin(a); p += `<g class="cab" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><path d="M-9,14 L-9,4 Q-9,-2 0,-2 Q9,-2 9,4 L9,14Z" fill="${M.ROPA[i % M.ROPA.length]}" ${SW(2.5)}/><circle cy="-9" r="7" fill="${M.PIEL[(i * 2) % M.PIEL.length]}" ${SW(2.5)}/></g>`; }
+  return p + `<ellipse cx="0" cy="18" rx="48" ry="17" fill="#D9B98C" ${SW()}/><ellipse cx="0" cy="18" rx="30" ry="9" fill="${UE}" ${SW(2)}/>` + estrella5(0, 18, 7, ORO);
+});
+M.registrarIcono('consejoUE', () => {
+  let p = '';
+  [-30, 0, 30].forEach((x, i) => { p += `<path d="M${x - 12},${10} L${x - 12},${-6} Q${x - 12},${-14} ${x},${-14} Q${x + 12},${-14} ${x + 12},${-6} L${x + 12},10Z" fill="${['#7D8597', '#8E6C8A', '#6FB3A8'][i]}" ${SW(2.5)}/><circle cx="${x}" cy="-25" r="9" fill="${M.PIEL[[0, 3, 1][i]]}" ${SW(2.5)}/><path d="M${x - 3},${-12} L${x},${-4} L${x + 3},${-12}" fill="#fff" ${SW(1.5)}/>`; });
+  p += `<rect x="-50" y="8" width="100" height="14" rx="4" fill="#D9B98C" ${SW(3)}/><path d="M-40,22 L-40,44 M40,22 L40,44" ${SW(5)}/>`;
+  [-30, 0, 30].forEach((x) => { p += `<rect x="${x - 10}" y="0" width="20" height="9" rx="2" fill="#fff" ${SW(2)}/>`; });
+  p += `<rect x="20" y="28" width="22" height="16" rx="3" fill="${C.tronco}" ${SW(2.5)}/><path d="M26,28 L26,24 L36,24 L36,28" fill="none" ${SW(2.5)}/>`;
+  return p;
+});
+M.registrarIcono('comision', () => {
+  let v = '';
+  for (let f = 0; f < 5; f++) for (let c = 0; c < 4; c++) v += `<rect x="${-26 + c * 14}" y="${-24 + f * 13}" width="9" height="8" rx="1.5" fill="${(f + c) % 3 === 0 ? '#FFE8A3' : '#CFE3F0'}" ${SW(1.5)}/>`;
+  return `<rect x="-34" y="-34" width="68" height="84" rx="4" fill="#E7ECF2" ${SW()}/>${v}<rect x="-10" y="36" width="20" height="14" rx="2" fill="${UE}" ${SW(2.5)}/>` +
+    `<path d="M0,-34 L0,-58" ${SW(3)}/>`;
+});
+M.registrarIcono('bce', () => `<rect x="-26" y="-48" width="40" height="98" rx="4" fill="#CFE3F0" ${SW()}/><path d="M-26,-16 L14,-16 M-26,16 L14,16 M-6,-48 L-6,50" stroke="${C.gris}" stroke-width="2"/>` +
+  `<rect x="-36" y="44" width="62" height="8" rx="3" fill="${C.grisOsc}" ${SW(2.5)}/>`);
+M.registrarIcono('grua', () => `<path d="M-6,50 L-6,-40 L6,-40 L6,50Z" fill="${C.ayto === '#F4B942' ? '#E8A33D' : '#E8A33D'}" ${SW(3)}/>` +
+  Array.from({ length: 6 }, (_, i) => `<path d="M-6,${44 - i * 15} L6,${32 - i * 15}" ${SW(2)}/>`).join('') +
+  `<path d="M-30,-40 L80,-40 L80,-32 L-30,-32Z" fill="#E8A33D" ${SW(3)}/><path d="M0,-40 L0,-56 L-30,-40 M0,-56 L80,-40" fill="none" ${SW(2.5)}/><rect x="-36" y="-38" width="14" height="14" rx="2" fill="${C.grisOsc}" ${SW(2.5)}/>`);
+M.registrarIcono('cabina', () => `<rect x="-24" y="-30" width="48" height="76" rx="4" fill="#DDE2EA" ${SW()}/><rect x="-16" y="-20" width="32" height="22" rx="3" fill="#CFE3F0" ${SW(2.5)}/><path d="M-30,-30 L30,-30 L24,-44 L-24,-44Z" fill="${C.grisOsc}" ${SW(3)}/>`);
+M.registrarIcono('caja', (o) => {
+  const prod = {
+    fruta: `<circle cx="-10" cy="-30" r="11" fill="#E07A6A" ${SW(2.5)}/><circle cx="10" cy="-30" r="11" fill="#F2A65A" ${SW(2.5)}/><path d="M-10,-41 L-8,-46" ${SW(2.5, C.verdeOsc)}/>`,
+    queso: `<path d="M-20,-22 L20,-22 L20,-40 L-14,-40Z" fill="#F7D774" ${SW(2.5)}/><circle cx="4" cy="-30" r="3" fill="#E2B650"/>`,
+    botella: `<path d="M-6,-58 L6,-58 L6,-48 Q14,-44 14,-36 L14,-22 L-14,-22 L-14,-36 Q-14,-44 -6,-48Z" fill="#8CC0DE" ${SW(2.5)}/>`,
+    ropa: `<path d="M-18,-42 L-8,-46 Q0,-40 8,-46 L18,-42 L24,-32 L16,-28 L14,-22 L-14,-22 L-16,-28 L-24,-32Z" fill="#9D8EC7" ${SW(2.5)}/>`,
+  }[o.prod || 'fruta'];
+  return prod + `<rect x="-30" y="-22" width="60" height="44" rx="4" fill="#D9B98C" ${SW()}/><path d="M-30,-6 L30,-6 M-30,8 L30,8" ${SW(2.5, C.tronco)}/>`;
+});
+M.registrarIcono('obraEdificio', () => {
+  let p = `<rect x="-40" y="-20" width="80" height="70" rx="2" fill="#E9DCC8" ${SW()}/>`;
+  for (let f = 0; f < 3; f++) for (let c = 0; c < 3; c++) p += `<rect x="${-30 + c * 22}" y="${-10 + f * 20}" width="14" height="12" rx="2" fill="#CFE3F0" ${SW(2)}/>`;
+  p += `<path d="M-40,-20 L-40,-50 M40,-20 L40,-50 M-40,-50 L40,-50 M-40,-35 L40,-35 M-40,-50 L-20,-35 M0,-50 L20,-35" fill="none" ${SW(3, C.grisOsc)}/>`;
+  return p;
+});
+M.registrarIcono('tienda', () => `<rect x="-44" y="-14" width="88" height="64" rx="3" fill="#F2E6D0" ${SW()}/>` +
+  `<rect x="-34" y="4" width="34" height="26" rx="3" fill="#CFE3F0" ${SW(2.5)}/><rect x="10" y="4" width="24" height="46" rx="3" fill="${C.tronco}" ${SW(2.5)}/>` +
+  `<path d="M-50,-14 L-50,-34 L50,-34 L50,-14 Q42,-4 34,-14 Q26,-4 17,-14 Q8,-4 0,-14 Q-8,-4 -17,-14 Q-26,-4 -34,-14 Q-42,-4 -50,-14Z" fill="#8CC0DE" ${SW(3)}/>` +
+  [-34, 0, 34].map((x) => `<path d="M${x - 8},-34 L${x + 8},-34 L${x + 8},-14 Q${x},-6 ${x - 8},-14Z" fill="#fff"/>`).join('') +
+  `<path d="M-50,-34 L50,-34" ${SW(3)}/>`);
+M.registrarIcono('lupaV5', () => `<path d="M20,20 L44,44" ${SW(12)}/><path d="M20,20 L44,44" ${SW(6, C.tronco)}/><circle cx="-4" cy="-4" r="32" fill="#E8F3F8" fill-opacity=".18" ${SW(6)}/><path d="M-22,-16 A20,20 0 0 1 -12,-26" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>`);
+M.registrarIcono('flechaArriba', (o) => `<path d="M0,-44 L32,-6 L14,-6 L14,40 L-14,40 L-14,-6 L-32,-6Z" fill="${o.color || UE}" ${SW()}/>`);
+
+// ═════════════════ Escena 1: el monedero ═════════════════
+M.escena(1, (E) => {
+  const g = E.g;
+  const fase1 = M.g(g);
+  M.el('rect', { x: 0, y: 590, width: 1280, height: 300, fill: C.arena }, fase1);
+  // mesa
+  M.el('rect', { x: 60, y: 572, width: 430, height: 26, rx: 10, fill: '#D9B98C', stroke: K, 'stroke-width': 4 }, fase1);
+  const mon = M.g(fase1);
+  M.pon(M.sombra(mon, 54, 6), { y: 46 });
+  const cuerpo = M.icono('monederoCuerpo', mon);
+  const bis = M.g(mon); M.pon(bis, { x: -48, y: -8 });
+  const tapa = M.icono('monederoTapa', bis);
+  const mano = M.icono('mano', g, { piel: M.PIEL[2] });
+  const PX = 270, PY = 470, PS = 2.6;
+  const POS = [[640, 255], [845, 255], [1050, 255], [640, 450], [845, 450], [1050, 450]];
+  const monedas = MONEDAS.map((m) => moneda(fase1, m));
+  const rMon = M.rotulo(g, 'Monedas de euro', { tam: 44, fondo: UE });
+  const rDib = M.rotulo(g, '¡Dibujos de otros países!', { tam: 44, fondo: K });
+  const tMon = E.m('monedas de euro'), tVue = E.m('dales la vuelta'), tOtr = E.m('dibujos de otros'), tComo = E.m('Cómo han llegado'), tMis = E.m('misma moneda'), tMuch = E.m('muchos países'), tHoy = E.m('Hoy abrimos'), tGra = E.m('más grande'), tUE = E.m('la Unión Europea');
+  // fase 2: mapa
+  const caja = { x: 300, y: 122, w: 680, h: 528 }; const fit = M.mapas.encajar(1000, 820, caja);
+  const mapa = mapaEuropa(g, { relleno: (p) => (p.euro ? M.aclara(UE, 0.55) : C.tierraMapa) });
+  const MAD = EUROPA.ciudades.Madrid;
+  const ORIG = ['FR', 'DE', 'IT', 'PT', 'GR', 'NL', 'AT', 'FI', 'IE'];
+  const viajes = ORIG.map((id, i) => {
+    const [x1, y1] = datosPais(id).et; const [x2, y2] = MAD;
+    const curva = (i % 2 ? 1 : -1) * 70;
+    const fl = M.flecha(mapa.capa, { x1, y1, x2, y2, curva, color: UE, grosor: 6, discontinua: true });
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+    const q = [mx - (dy / L) * curva, my + (dx / L) * curva];
+    const mo = moneda(mapa.capa, MONEDAS[i % MONEDAS.length]); mo.voltear(1);
+    return { fl, mo, p0: [x1, y1], q, p1: [x2, y2] };
+  });
+  const madrid = M.g(mapa.capa); M.el('circle', { r: 14, fill: C.blanco, stroke: K, 'stroke-width': 5 }, madrid); M.el('circle', { r: 6, fill: K }, madrid);
+  const euros = Object.values(mapa.paises).filter((p) => p.euro).map((p) => ({ p, el: M.icono('euroGrande', mapa.capa) }));
+  const rComo = M.rotulo(g, '¿Cómo han llegado aquí?', { tam: 44, fondo: K });
+  const rMis = M.rotulo(g, 'La misma moneda en muchos países', { tam: 40, fondo: UE });
+  // fase 3: la muñeca grande
+  const rayos = M.g(g);
+  for (let i = 0; i < 16; i++) { const a = (i * Math.PI) / 8; M.el('path', { d: `M${(150 * Math.cos(a)).toFixed(1)},${(150 * Math.sin(a)).toFixed(1)} L${(205 * Math.cos(a)).toFixed(1)},${(205 * Math.sin(a)).toFixed(1)}`, stroke: ORO, 'stroke-width': 10, 'stroke-linecap': 'round', opacity: 0.5 }, rayos); }
+  const mun = munecaPartida(g, UE, { texto: 'UE', tamTexto: 15 });
+  const estrellas = Array.from({ length: 12 }, () => M.svg(g, estrella5(0, 0, 20, ORO, SW(3))));
+  const rUE = M.rotulo(g, 'La Unión Europea', { tam: 50, fondo: UE, pad: 34 });
+  const rGra = M.rotulo(g, 'La muñeca más grande', { tam: 32, fondo: C.blanco, color: K, borde: UE, grosor: 4 });
+  return (t, d) => {
+    const f1 = fuera(t, tComo - 0.35, 0.45);
+    M.pon(fase1, { o: f1 });
+    if (f1 > 0) {
+      ap(mon, { x: PX, y: PY, s: PS }, t, 0.1, 'sube');
+      const abre = M.e(t, 0.55, 0.8, 'inOutCubic');
+      const ang = -72 * abre;
+      M.pon(bis, { x: -48, y: -8, r: ang });
+      // la mano sujeta la punta de la tapa (los dedos sobre el cierre)
+      const a = (ang * Math.PI) / 180, px = -48 + 92 * Math.cos(a), py = -8 + 92 * Math.sin(a);
+      M.ponAp(mano, { x: PX + PS * px + 4, y: PY + PS * py + 48 + M.onda(t, 2, 2), s: 1.05, r: 8 + M.onda(t, 2.6, 3), o: f1 }, M.aparicion(t, 0.15, 0.5, 'sube'));
+      monedas.forEach((m, i) => {
+        const t0 = 1.15 + i * 0.16;
+        const p = M.e(t, t0, 0.75, 'outCubic');
+        const [x, y] = POS[i];
+        const sx = PX, sy = PY - 20;
+        const arco = Math.sin(Math.PI * p) * 160;
+        M.pon(m.g, { x: M.lerp(sx, x, p), y: M.lerp(sy, y, p) - arco + (p >= 1 ? M.onda(t, 2.6, 4, i) : 0), s: M.lerp(0.5, 1.45, p), o: t >= t0 ? 1 : 0, r: (1 - p) * 40 });
+        m.voltear(M.e(t, tVue + 0.2 + i * 0.14, 0.6, 'inOutQuad'));
+      });
+      M.ponAp(rMon, { x: 845, y: 85, o: fuera(t, tOtr - 0.35, 0.3) }, M.aparicion(t, Math.min(tMon, 1.0), 0.5, 'sube'));
+      ap(rDib, { x: 845, y: 85 }, t, tOtr - 0.1, 'sube');
+    } else M.opacidad(mano, 0);
+    M.opacidad(rMon, Math.min(+rMon.getAttribute('opacity') || 0, f1) * (f1 > 0 ? 1 : 0));
+    M.opacidad(rDib, Math.min(+rDib.getAttribute('opacity') || 0, f1) * (f1 > 0 ? 1 : 0));
+    // fase 2
+    const f2 = fuera(t, tHoy - 0.35, 0.45);
+    const a2 = M.aparicion(t, tComo - 0.25, 0.6, 'fundido');
+    M.pon(mapa.ext, { x: fit.x, y: fit.y + (1 - a2.o) * 20, s: fit.s, o: a2.o * f2 });
+    M.ponAp(rComo, { x: 640, y: 70, o: f2 * fuera(t, tMis - 0.3, 0.3) }, M.aparicion(t, tComo - 0.1, 0.5, 'sube'));
+    M.ponAp(rMis, { x: 640, y: 70, o: f2 }, M.aparicion(t, tMis - 0.1, 0.5, 'sube'));
+    if (a2.o * f2 > 0) {
+      viajes.forEach((v, i) => {
+        const t0 = tComo + 0.3 + i * 0.32;
+        v.fl.poner(M.e(t, t0, 0.8));
+        M.opacidad(v.fl.g, (t > t0 ? 0.75 : 0) * fuera(t, tMuch - 0.2, 0.5));
+        const p = M.e(t, t0 + 0.2, 1.1, 'inOutQuad');
+        const x = (1 - p) * (1 - p) * v.p0[0] + 2 * (1 - p) * p * v.q[0] + p * p * v.p1[0];
+        const y = (1 - p) * (1 - p) * v.p0[1] + 2 * (1 - p) * p * v.q[1] + p * p * v.p1[1];
+        M.pon(v.mo.g, { x, y, s: 0.55, o: t > t0 + 0.2 && p < 1 ? 1 : 0, r: p * 360 });
+      });
+      M.pon(madrid, { x: MAD[0], y: MAD[1], s: (1 + 0.25 * M.onda(t, 0.8, 1)) * M.e(t, tComo, 0.4, 'outBack') });
+      euros.forEach((e, i) => M.pon(e.el, { x: e.p.et[0], y: e.p.et[1] + M.onda(t, 2.2, 3, i), s: (e.p.pequeno ? 0.3 : 0.42) * M.e(t, tMuch - 0.3 + (i % 7) * 0.06, 0.45, 'outBack'), o: t > tMuch - 0.3 ? 1 : 0 }));
+    }
+    // fase 3
+    const a3 = M.aparicion(t, tHoy - 0.15, 0.6, 'sube');
+    M.ponAp(mun.g, { x: 640, y: 395 + M.onda(t, 2.6, 3), s: 3.0 }, a3);
+    const abre = M.e(t, tGra, 0.7, 'outBack');
+    mun.abrir(abre * 0.75);
+    M.pon(rayos, { x: 640, y: 350, r: t * 14, s: M.e(t, tGra + 0.2, 0.6, 'outBack'), o: M.e(t, tGra + 0.2, 0.4) });
+    estrellas.forEach((s, i) => {
+      const p = M.e(t, tGra + 0.15 + i * 0.05, 0.8, 'outCubic');
+      const ang = (i * Math.PI) / 6 + t * 0.35;
+      const R = 225 * p;
+      M.pon(s, { x: 640 + R * Math.sin(ang), y: 360 - R * Math.cos(ang) * 0.85, s: 0.4 + 0.6 * p, o: t > tGra + 0.15 + i * 0.05 ? 1 : 0 });
+    });
+    ap(rUE, { x: 640, y: 615 }, t, tUE - 0.15, 'sube');
+    M.ponAp(rGra, { x: 640, y: 85, o: Math.min(1, a3.o) }, M.aparicion(t, tGra - 0.1, 0.5, 'fundido'));
+  };
+});
+
+// ═════════════════ Escena 2: la muñeca de la UE envuelve a las otras ═════════════════
+M.escena(2, (E) => {
+  const g = E.g;
+  M.el('rect', { x: 0, y: 600, width: 1280, height: 300, fill: C.arena }, g);
+  const NIV = [C.ayto, C.prov, C.ccaa, C.estado];
+  const pequenas = NIV.map((c) => M.icono('muneca', g, { color: c }));
+  const XS = [95, 185, 290, 410], SS = [0.9, 1.05, 1.2, 1.4];
+  const BASE = 560, UX = 270, US = 3.3;
+  const ueM = munecaPartida(g, UE, { texto: 'UE', tamTexto: 15 });
+  const tUE = E.m('Unión Europea'), t27 = E.m('27 países'), tJun = E.m('trabajar juntos'), tCom = E.m('Comparten'), tReg = E.m('reglas'), tEco = E.m('economía'), tVal = E.m('valores comunes'), tDem = E.m('democracia'), tDer = E.m('derechos humanos'), tBie = E.m('bienestar');
+  // «27 países» con contador
+  const p27 = M.g(g);
+  M.el('rect', { x: -150, y: -38, width: 300, height: 76, rx: 38, fill: UE, stroke: K, 'stroke-width': 4 }, p27);
+  const n27 = M.texto(p27, '0', { tam: 50, peso: 900, color: C.blanco, x: -62 });
+  M.texto(p27, 'países', { tam: 40, peso: 850, color: C.blanco, x: 50 });
+  // panel derecho
+  const RX = 880;
+  const rJun = M.rotulo(g, 'Trabajan juntos', { tam: 40, fondo: UE });
+  const tCompTxt = M.texto(g, 'Comparten…', { tam: 32, peso: 850, color: C.grisOsc });
+  const chip = (icono, palabra, opc = {}) => { const c = M.g(g); M.tarjeta(c, { ancho: 290, alto: 104, trazo: UE, grosor: 5 }); M.pon(M.icono(icono, c, opc), { x: -88, s: 0.68 }); M.texto(c, palabra, { tam: 36, peso: 900, x: 38 }); return c; };
+  const cReg = chip('libro', 'Reglas', { titulo: 'UE', color: UE, tamTitulo: 22 }), cEco = chip('monedas', 'Economía');
+  const tValTxt = M.texto(g, 'Valores comunes', { tam: 36, peso: 900, color: UE });
+  const VAL = [['urna', 'Democracia', tDem, { papeletas: 5 }], ['derechos', 'Derechos\nhumanos', tDer, {}], ['manos', 'Bienestar', tBie, {}]];
+  const valores = VAL.map(([ic, txt, , o]) => { const v = M.g(g); M.el('circle', { r: 68, fill: C.blanco, stroke: UE, 'stroke-width': 5 }, v); M.pon(M.icono(ic, v, o), { s: 0.95, y: 2 }); M.texto(v, txt, { tam: 28, peso: 900, y: txt.includes('\n') ? 112 : 96 }); return v; });
+  return (t, d) => {
+    // las cuatro pequeñas se juntan y entran en la grande
+    const junta = M.e(t, 0.7, 0.7, 'inOutCubic');
+    const entra = M.e(t, 1.55, 0.6, 'inOutCubic');
+    pequenas.forEach((p, i) => {
+      const a = M.aparicion(t, 0.05 + i * 0.1, 0.5, 'sube');
+      const s = M.lerp(SS[i], 1.25 + i * 0.25, junta) * M.lerp(1, 0.7, entra);
+      const x = M.lerp(XS[i], UX, junta);
+      const yPies = M.lerp(BASE, BASE - 40 * junta, 1) - entra * 30;
+      M.ponAp(p, { x, y: yPies - 50 * s + M.onda(t, 2, 2, i) * (1 - junta), s, o: t < 2.45 ? 1 : 0 }, a);
+    });
+    const aU = M.aparicion(t, 1.05, 0.45, 'fundido');
+    const abierta = Math.min(1, 1 - M.e(t, 2.15, 0.5, 'outBounce'));
+    ueM.abrir(abierta * 1.3);
+    M.ponAp(ueM.g, { x: UX, y: BASE - 50 * US + M.onda(t, 2.8, 3), s: US, r: M.onda(t, 3.4, 1.2) }, aU);
+    // contador 27
+    ap(p27, { x: UX, y: 618 }, t, t27 - 0.3);
+    M.ponTexto(n27, String(Math.round(M.contador(t, t27 - 0.2, 1.0, 0, 27))));
+    ap(rJun, { x: RX, y: 85 }, t, tJun - 0.2, 'sube');
+    ap(tCompTxt, { x: RX, y: 160 }, t, tCom - 0.1, 'fundido');
+    ap(cReg, { x: RX - 165, y: 232 + M.onda(t, 3, 3) }, t, tReg - 0.15);
+    ap(cEco, { x: RX + 165, y: 232 + M.onda(t, 3, 3, 1) }, t, tEco - 0.15);
+    ap(tValTxt, { x: RX, y: 335 }, t, tVal - 0.2, 'sube');
+    valores.forEach((v, i) => {
+      const t0 = VAL[i][2];
+      ap(v, { x: RX + (i - 1) * 215, y: 440 + M.onda(t, 3, 3, i), s: 1 + 0.08 * M.ventana(t, t0, t0 + 0.9, 0.25) }, t, t0 - 0.2);
+    });
+  };
+});
+
+// ═════════════════ Escena 3: línea del tiempo ═════════════════
+M.escena(3, (E) => {
+  const g = E.g;
+  const X = [150, 385, 640, 890, 1125], LY = 490, CY = 318, CW = 206, CH = 206;
+  const tGue = E.m('Segunda Guerra'), t51 = E.m('1951'), tSeis = E.m('seis países'), tNo = E.m('no volviera'), tPoco = E.m('Poco a poco'), tEsp = E.m('España entró'), t86 = E.m('1986'), t20 = E.m('2020'), tMar = E.m('se marchó'), t27 = E.m('son 27');
+  const TS = [Math.min(tGue, 0.6), t51, Math.min(tEsp, t86 - 0.4), t20, t27 - 0.5];
+  const rTit = M.rotulo(g, 'Historia de la UE', { tam: 46, fondo: UE });
+  const linea = M.el('path', { d: `M70,${LY} L1215,${LY}`, stroke: K, 'stroke-width': 8, 'stroke-linecap': 'round' }, g);
+  const LARGO = 1145;
+  const punta = M.el('path', { d: 'M0,0 L-22,-14 L-22,14Z', fill: K }, g);
+  const tarjeta = (i, color) => { const c = M.g(g); M.el('path', { d: `M0,${CH / 2} L0,${LY - CY}`, stroke: color, 'stroke-width': 5, 'stroke-dasharray': '4 8', 'stroke-linecap': 'round' }, c); M.tarjeta(c, { ancho: CW, alto: CH, trazo: color, grosor: 5, radio: 24 }); M.el('circle', { cy: LY - CY, r: 13, fill: color, stroke: K, 'stroke-width': 4 }, c); return c; };
+  const cards = [tarjeta(0, C.gris), tarjeta(1, UE), tarjeta(2, UE), tarjeta(3, C.gris), tarjeta(4, UE)];
+  // 0: la guerra
+  const rayo = M.icono('rayo', cards[0], { color: '#8D99AE' });
+  const nube = M.icono('nube', cards[0], { color: '#B9BFCB' });
+  M.texto(cards[0], 'Tras la\nguerra', { tam: 28, peso: 900, y: 62 });
+  // 1: 1951, seis países
+  const fichas = []; for (let i = 0; i < 6; i++) { const f = M.g(cards[1]); M.el('circle', { r: 22, fill: UE, stroke: K, 'stroke-width': 3 }, f); M.svg(f, estrella5(0, 0, 11, ORO)); fichas.push({ f, x: -54 + (i % 3) * 54, y: -46 + Math.floor(i / 3) * 52 }); }
+  M.texto(cards[1], '6 países', { tam: 34, peso: 900, y: 70 });
+  const paloma = espejo('paloma', g);
+  // 2: España
+  const esp = silueta(cards[2], 'ES', 96, UE); M.pon(esp, { y: -24 });
+  M.texto(cards[2], 'Entra\nEspaña', { tam: 28, peso: 900, y: 64 });
+  // 3: Reino Unido sale
+  const gb = silueta(cards[3], 'GB', 104, '#B9BFCB');
+  const sale = M.flecha(cards[3], { x1: 20, y1: -20, x2: 78, y2: -78, color: C.error, grosor: 6 });
+  M.texto(cards[3], 'Sale el\nReino Unido', { tam: 26, peso: 900, y: 64 });
+  // 4: hoy 27
+  const insignia = M.g(cards[4]);
+  M.el('circle', { r: 62, fill: UE, stroke: K, 'stroke-width': 4 }, insignia);
+  const aro27 = M.g(insignia);
+  for (let i = 0; i < 12; i++) { const a = (i * Math.PI) / 6; M.svg(aro27, estrella5(50 * Math.sin(a), -50 * Math.cos(a), 6, ORO)); }
+  const n27 = M.texto(insignia, '27', { tam: 52, peso: 900, color: C.blanco, y: 2 });
+  M.texto(cards[4], 'países', { tam: 30, peso: 900, y: 78 });
+  // años
+  const anios = ['', '1951', '1986', '2020', 'Hoy'].map((a, i) => (a ? M.texto(g, a, { tam: 40, peso: 900, color: i === 4 ? UE : K }) : null));
+  // «poco a poco se suman más»
+  const suman = Array.from({ length: 5 }, () => { const s = M.g(g); M.el('circle', { r: 11, fill: UE, stroke: K, 'stroke-width': 3 }, s); M.svg(s, estrella5(0, 0, 5.5, ORO)); return s; });
+  const rMas = M.texto(g, '+ países', { tam: 26, peso: 900, color: UE });
+  return (t, d) => {
+    ap(rTit, { x: 640, y: 70 }, t, 0.1, 'sube');
+    // la línea avanza hasta el último hito mencionado
+    let hasta = 0.05;
+    TS.forEach((t0, i) => { const p = M.e(t, t0 - 0.4, 0.6, 'inOutQuad'); const xi = (X[i] + 45 - 70) / LARGO; hasta = Math.max(hasta, M.lerp(hasta, i === 4 ? 1 : xi, p)); });
+    hasta = Math.max(hasta, M.e(t, 0.1, 0.6) * ((X[0] + 45 - 70) / LARGO));
+    linea.setAttribute('stroke-dasharray', `${(LARGO * hasta).toFixed(1)} ${LARGO + 10}`);
+    M.pon(punta, { x: 70 + LARGO * hasta + 8, y: LY });
+    cards.forEach((c, i) => ap(c, { x: X[i], y: CY + M.onda(t, 3.2, 3, i) }, t, TS[i] - 0.15, 'cae', 0.8));
+    anios.forEach((a, i) => { if (a) ap(a, { x: X[i], y: LY + 52 }, t, TS[i] + 0.1, 'sube'); });
+    // la nube de la guerra se aclara cuando llega la paz
+    const paz = M.e(t, tNo - 0.1, 0.6);
+    M.pon(nube, { y: -42 + M.onda(t, 2, 2), s: 1.15, o: 1 - paz * 0.55 });
+    M.pon(rayo, { x: 8, y: 0, s: 0.42, r: M.onda(t, 0.5, 6), o: 1 - paz });
+    fichas.forEach((f, i) => M.pon(f.f, { x: f.x, y: f.y, s: M.e(t, tSeis - 0.2 + i * 0.1, 0.4, 'outBack'), o: t > tSeis - 0.2 + i * 0.1 ? 1 : 0 }));
+    // la paloma vuela de la guerra al 1951
+    const vuela = M.e(t, tNo, 1.2, 'inOutCubic');
+    const px = M.lerp(X[0], X[1] + 80, vuela), py = M.lerp(CY - 20, CY - 112, vuela) - Math.sin(Math.PI * vuela) * 70;
+    M.ponAp(paloma, { x: px, y: py + M.onda(t, 0.6, 4), s: 0.85 * (vuela > 0 ? 1 : 0.001), r: M.onda(t, 0.6, 5) }, M.aparicion(t, tNo - 0.1, 0.4, 'fundido'));
+    suman.forEach((s, i) => M.pon(s, { x: 456 + i * 28, y: LY + M.onda(t, 1, 2, i) * M.e(t, tPoco, 0.3), s: M.e(t, tPoco + i * 0.18, 0.4, 'outBack'), o: t > tPoco + i * 0.18 ? 1 : 0 }));
+    ap(rMas, { x: 512, y: LY - 36 }, t, tPoco + 0.2, 'fundido');
+    M.pon(esp, { y: -24, s: 1 + 0.08 * M.ventana(t, t86, t86 + 0.9, 0.25), r: M.onda(t, 3, 2) });
+    // Reino Unido se va
+    const va = M.e(t, tMar - 0.2, 1.0, 'inOutCubic');
+    M.pon(gb, { x: -10 + va * 30, y: -24 - va * 26, s: 1 - va * 0.3, o: 1 - va * 0.45, r: va * 12 });
+    sale.poner(M.e(t, tMar, 0.5));
+    M.ponTexto(n27, String(Math.round(M.contador(t, t27 - 0.4, 0.9, 28, 27, 'inOutQuad'))));
+    M.pon(insignia, { y: -28, s: 0.9 + 0.05 * M.onda(t, 1.4, 1) });
+    M.pon(aro27, { r: t * 12 });
+  };
+});
+
+// ═════════════════ Escena 4: los 27 en el mapa ═════════════════
+M.escena(4, (E) => {
+  const g = E.g;
+  const caja = { x: 40, y: 36, w: 760, h: 622 }; const fit = M.mapas.encajar(1000, 820, caja);
+  const cam = M.g(g);
+  const mapa = mapaEuropa(cam, { relleno: C.tierraMapa });
+  const P = mapa.paises;
+  const tEsp = E.m('España'), tPor = E.m('Portugal'), tFra = E.m('Francia'), tIta = E.m('Italia'), tAle = E.m('Alemania'), tFij = E.m('Fijaos'), tSui = E.m('Suiza'), tNor = E.m('Noruega'), tNoUE = E.m('no son de la UE');
+  const NOMBRADOS = [['ES', tEsp], ['PT', tPor], ['FR', tFra], ['IT', tIta], ['DE', tAle]];
+  const resto = Object.values(P).filter((p) => p.ue && !NOMBRADOS.some(([id]) => id === p.id)).sort((a, b) => a.et[0] - b.et[0]);
+  const ventana = Math.max(1.2, tFij - 0.15 - (tAle + 0.35));
+  const orden = [...NOMBRADOS.map(([id, t0]) => ({ p: P[id], t0: t0 - 0.1 })), ...resto.map((p, i) => ({ p, t0: tAle + 0.35 + (i / resto.length) * ventana }))];
+  const s = fit.s;
+  const etiqueta = (id, txt, dx = 0, dy = 0) => M.texto(mapa.capa, txt, { tam: 25 / s, peso: 900, x: P[id].et[0] + dx, y: P[id].et[1] + dy, borde: C.blanco, grosorBorde: 7 / s });
+  const etq = { ES: etiqueta('ES', 'España', 10, -8), PT: etiqueta('PT', 'Portugal', -44, 86), FR: etiqueta('FR', 'Francia', -10, -6), IT: etiqueta('IT', 'Italia', 4, 44), DE: etiqueta('DE', 'Alemania', 0, -8) };
+  const etSui = etiqueta('CH', 'Suiza', -6, 40), etNor = etiqueta('NO', 'Noruega', -46, -16);
+  const xSui = M.marca(mapa.capa, false, 22 / s), xNor = M.marca(mapa.capa, false, 22 / s);
+  // panel derecho
+  const PXc = 1022;
+  const rTit = M.rotulo(g, 'Los países de la UE', { tam: 34, fondo: UE });
+  const num = M.texto(g, '0', { tam: 130, peso: 900, color: UE });
+  const lPaises = M.texto(g, 'países', { tam: 40, peso: 900 });
+  const leyenda = M.g(g);
+  [[UE, 'En la UE'], ['#A9B0BD', 'Fuera de la UE']].forEach(([c, txt], i) => { M.el('rect', { x: -150, y: i * 52 - 17, width: 34, height: 34, rx: 8, fill: c, stroke: K, 'stroke-width': 3 }, leyenda); M.texto(leyenda, txt, { tam: 28, peso: 850, x: -100, y: i * 52, anchor: 'start' }); });
+  const noUE = M.g(g);
+  M.tarjeta(noUE, { ancho: 380, alto: 112, trazo: C.error, grosor: 5 });
+  M.pon(M.marca(noUE, false, 26), { x: -140 });
+  M.texto(noUE, 'Suiza y Noruega:\nno son de la UE', { tam: 29, peso: 900, x: 30 });
+  return (t, d) => {
+    M.pon(cam, { x: fit.x, y: fit.y, s: fit.s });
+    M.camara(mapa.ext, t, d, { hasta: 1.035, cx: 420, cy: 520 });
+    let n = 0;
+    orden.forEach(({ p, t0 }) => {
+      const c = M.e(t, t0, 0.35);
+      if (t >= t0) n++;
+      p.path.setAttribute('fill', M.mezcla(C.tierraMapa, c < 1 ? M.aclara(UE, 0.35) : UE, c));
+      popPais(p, 1 + 0.18 * M.ventana(t, t0, t0 + 0.35, 0.18));
+    });
+    const gris = M.e(t, tSui - 0.2, 0.4), gris2 = M.e(t, tNor - 0.2, 0.4);
+    P.CH.path.setAttribute('fill', M.mezcla(C.tierraMapa, '#A9B0BD', gris)); popPais(P.CH, 1 + 0.25 * M.ventana(t, tSui - 0.2, tSui + 0.6, 0.2));
+    P.NO.path.setAttribute('fill', M.mezcla(C.tierraMapa, '#A9B0BD', gris2)); popPais(P.NO, 1 + 0.08 * M.ventana(t, tNor - 0.2, tNor + 0.6, 0.2));
+    NOMBRADOS.forEach(([id, t0]) => ap(etq[id], {}, t, t0 + 0.05, 'pop', 0.4));
+    ap(etSui, {}, t, tSui, 'pop', 0.4); ap(etNor, {}, t, tNor, 'pop', 0.4);
+    ap(xSui, { x: P.CH.et[0] + 52, y: P.CH.et[1] - 8 }, t, tNoUE - 0.2, 'pop', 0.4);
+    ap(xNor, { x: P.NO.et[0] - 14, y: P.NO.et[1] + 44 }, t, tNoUE, 'pop', 0.4);
+    ap(rTit, { x: PXc, y: 82 }, t, 0.1, 'sube');
+    ap(num, { x: PXc, y: 220, s: 1 + 0.05 * M.onda(t, 1.2, 1) * (n >= 27 ? 1 : 0) }, t, 0.25);
+    M.ponTexto(num, String(n));
+    ap(lPaises, { x: PXc, y: 305 }, t, 0.35, 'fundido');
+    ap(leyenda, { x: PXc + 10, y: 395 }, t, Math.min(tFij - 0.2, tAle + 0.5), 'sube');
+    ap(noUE, { x: PXc, y: 560 + M.onda(t, 3, 3) }, t, tNoUE - 0.3, 'sube');
+  };
+});
+
+// ═════════════════ Escena 5: la bandera ═════════════════
+M.escena(5, (E) => {
+  const g = E.g;
+  const FX = 360, FY = 330, FH = 300;
+  const mastil = M.g(g);
+  M.el('rect', { x: -7, y: -190, width: 14, height: 500, rx: 6, fill: C.grisOsc, stroke: K, 'stroke-width': 3.5 }, mastil);
+  M.el('circle', { cy: -196, r: 13, fill: ORO, stroke: K, 'stroke-width': 3.5 }, mastil);
+  M.el('rect', { x: -36, y: 300, width: 72, height: 16, rx: 6, fill: C.grisOsc, stroke: K, 'stroke-width': 3.5 }, mastil);
+  const flag = bandera(g, FH, { grosor: 5 });
+  // sombreado de ondeo (degradado que se desplaza)
+  const gid = 'v5-onda-bandera';
+  const grad = M.el('linearGradient', { id: gid, x1: 0, y1: 0, x2: 1, y2: 0.15 }, M.defs);
+  const paradas = [0, 0.2, 0.4, 0.6, 0.8, 1].map((o) => M.el('stop', { offset: o, 'stop-color': '#000', 'stop-opacity': 0 }, grad));
+  const sombra = M.el('rect', { x: -flag.w / 2, y: -FH / 2, width: flag.w, height: FH, rx: 7, fill: `url(#${gid})` }, flag.g);
+  const anillo = M.el('circle', { r: flag.R, fill: 'none', stroke: ORO, 'stroke-width': 4, 'stroke-dasharray': '10 10', opacity: 0.9 }, flag.g);
+  flag.g.insertBefore(anillo, flag.estrellas[0].g);
+  const aguja = M.g(flag.g);
+  M.el('path', { d: `M0,0 L0,${-flag.R + 26}`, stroke: '#fff', 'stroke-width': 7, 'stroke-linecap': 'round' }, aguja);
+  M.el('circle', { r: 9, fill: '#fff' }, aguja);
+  const tBan = E.m('bandera'), t12 = E.m('12 estrellas'), tCir = E.m('en círculo'), tTra = E.m('pregunta trampa'), tNo = E.m('no son los países'), tSon = E.m('Son 12'), tCom = E.m('completo'), tUni = E.m('unido');
+  const RX = 920;
+  const rBan = M.rotulo(g, 'La bandera de la UE', { tam: 40, fondo: UE });
+  const n12 = M.texto(g, '0', { tam: 110, peso: 900, color: UE });
+  const lEst = M.texto(g, 'estrellas doradas', { tam: 32, peso: 900 });
+  const rTra = M.g(g);
+  const rt = M.rotulo(rTra, '¡Pregunta trampa!', { tam: 36, fondo: K, pad: 26 });
+  M.pon(M.icono('exclamacion', rTra), { x: -rt.ancho / 2 - 8, s: 0.62 });
+  const c27 = M.g(g);
+  M.tarjeta(c27, { ancho: 360, alto: 150, trazo: C.error, grosor: 5 });
+  M.texto(c27, '12 estrellas = 27 países', { tam: 29, peso: 900, y: -30 });
+  M.texto(c27, 'No son los países', { tam: 30, peso: 850, y: 30, color: C.grisOsc });
+  const tacha = M.flecha(c27, { x1: -158, y1: -22, x2: 158, y2: -38, color: C.error, grosor: 6, punta: 0.01 });
+  const x27 = M.marca(c27, false, 26);
+  const rUni = M.rotulo(g, '12 = completo y unido', { tam: 36, fondo: UE });
+  return (t, d) => {
+    const viento = M.onda(t, 2.2, 1);
+    M.pon(mastil, { x: FX - flag.w / 2 - 8, y: FY });
+    ap(flag.g, { x: FX, y: FY + M.onda(t, 2.2, 3), r: M.onda(t, 2.2, 1.2), sy: 1 + 0.012 * viento }, t, 0.1, 'fundido');
+    // ondeo
+    const ph = t * 0.45;
+    paradas.forEach((st, i) => { const v = Math.sin((i / 5) * Math.PI * 2 - ph * Math.PI * 2); st.setAttribute('stop-color', v > 0 ? '#fff' : '#000'); st.setAttribute('stop-opacity', (Math.abs(v) * 0.13).toFixed(3)); });
+    // estrellas como las horas de un reloj
+    const T0 = Math.max(0.5, t12 - 0.35), PASO = Math.max(0.12, Math.min(0.2, (tCir + 0.4 - T0) / 12));
+    let n = 0;
+    flag.estrellas.forEach((e, i) => { const t0 = T0 + i * PASO; if (t >= t0) n++; M.pon(e.g, { x: e.x, y: e.y, s: M.e(t, t0, 0.35, 'outBack') * (1 + 0.15 * M.ventana(t, tCom + i * 0.05, tCom + 0.5 + i * 0.05, 0.2)), o: t >= t0 ? 1 : 0 }); });
+    const ang = M.lerp(0, 330, M.clamp((t - T0) / (11 * PASO)));
+    M.pon(aguja, { r: ang, o: M.ventana(t, T0 - 0.1, T0 + 12 * PASO + 0.2, 0.25) * 0.85 });
+    M.pon(anillo, { r: t * 10, o: M.e(t, tUni - 0.2, 0.5) * 0.9 });
+    M.pon(sombra, { o: 1 });
+    ap(rBan, { x: RX, y: 70 }, t, Math.max(0.2, tBan - 0.2), 'sube');
+    ap(n12, { x: RX, y: 190 }, t, T0);
+    M.ponTexto(n12, String(n));
+    ap(lEst, { x: RX, y: 268 }, t, T0 + 0.3, 'fundido');
+    ap(rTra, { x: RX + 18, y: 360 + M.onda(t, 1.4, 2) }, t, tTra - 0.2, 'pop');
+    ap(c27, { x: RX, y: 490, r: M.onda(t, 4, 0.8) }, t, tNo - 0.4, 'sube');
+    tacha.poner(M.e(t, tNo, 0.5));
+    ap(x27, { x: 170, y: -66 }, t, tNo + 0.4, 'pop', 0.4);
+    ap(rUni, { x: RX, y: 622 }, t, Math.min(tCom - 0.2, tSon + 0.6), 'sube');
+  };
+});
+
+// ═════════════════ Escena 6: las instituciones ═════════════════
+M.escena(6, (E) => {
+  const g = E.g;
+  const CW = 380, CH = 268;
+  const POS = [[230, 232], [640, 232], [1050, 232], [230, 518], [640, 518], [1050, 518]];
+  const INST = [
+    { nom: 'Parlamento Europeo', fun: 'Nos representa.\nLo votamos cada 5 años', ciudad: 'Estrasburgo y Bruselas', t: E.m('Parlamento Europeo') },
+    { nom: 'Consejo Europeo', fun: 'Jefes de los 27 países:\nmarcan el rumbo', ciudad: 'Bruselas', t: E.m('Consejo Europeo') },
+    { nom: 'Consejo de la UE', fun: 'Ministros de\ncada gobierno', ciudad: 'Bruselas', t: E.m('Consejo de la Unión') },
+    { nom: 'Comisión Europea', fun: 'Administra la UE\nen el día a día', ciudad: 'Bruselas', t: E.m('Comisión Europea') },
+    { nom: 'Tribunal de Justicia', fun: 'Vigila que se cumplan\nlas leyes europeas', ciudad: 'Luxemburgo', t: E.m('Tribunal de Justicia') },
+    { nom: 'Banco Central Europeo', fun: 'Se ocupa\ndel euro', ciudad: 'Fráncfort', t: E.m('Banco Central') },
+  ];
+  const tIns = E.m('instituciones'), tVot = E.m('votando'), t5 = E.m('cada cinco años'), tJef = E.m('jefes'), tMin = E.m('ministros'), tBru = E.m('Bruselas'), tLey = E.m('leyes europeas'), tEur = E.m('del euro');
+  const rTit = M.rotulo(g, 'Las instituciones de la UE', { tam: 38, fondo: UE });
+  const huecos = POS.map(() => { const h = M.g(g); M.el('rect', { x: -CW / 2, y: -CH / 2, width: CW, height: CH, rx: 24, fill: 'none', stroke: C.gris, 'stroke-width': 3, 'stroke-dasharray': '10 10' }, h); return h; });
+  const cards = INST.map((it, i) => {
+    const c = M.g(g);
+    const fondo = M.tarjeta(c, { ancho: CW, alto: CH, trazo: '#C3CAD6', grosor: 4, radio: 24 });
+    M.el('rect', { x: -CW / 2 + 2, y: -CH / 2 + 2, width: CW - 4, height: 12, rx: 6, fill: UE }, c);
+    const tamN = Math.min(30, 30 * 350 / M.medir(it.nom, 30, 900));
+    M.texto(c, it.nom, { tam: tamN, peso: 900, y: 4 });
+    M.texto(c, it.fun, { tam: 24, peso: 800, y: 52, color: C.grisOsc });
+    const chip = M.g(c);
+    const w = M.medir(it.ciudad, 24, 850) + 66;
+    M.el('rect', { x: -w / 2, y: -19, width: w, height: 38, rx: 19, fill: M.aclara(UE, 0.82), stroke: UE, 'stroke-width': 3 }, chip);
+    M.pon(M.icono('pin', chip), { x: -w / 2 + 24, y: -2, s: 0.4 });
+    M.texto(chip, it.ciudad, { tam: 24, peso: 850, x: 14, color: K });
+    M.pon(chip, { y: 108 });
+    const ic = M.g(c); M.pon(ic, { y: -76 });
+    return { c, fondo, chip, ic, ...it };
+  });
+  // iconos animados de cada institución
+  const hemi = M.hemiciclo(cards[0].ic, { n: 54, cx: 0, cy: 34, rInt: 26, rExt: 62, filas: 4, color: C.grisClaro });
+  hemi.asientos.forEach((a) => { a.setAttribute('stroke', K); a.setAttribute('stroke-width', 1.2); });
+  M.el('rect', { x: -12, y: 22, width: 24, height: 16, rx: 3, fill: '#D9B98C', stroke: K, 'stroke-width': 2.5 }, cards[0].ic);
+  const urna = M.icono('urna', cards[0].ic, { papeletas: 3 }); M.pon(urna, { x: 132, y: 6, s: 0.5 });
+  const pap = M.icono('papeleta', cards[0].ic);
+  const ce = M.icono('consejoEuropeo', cards[1].ic); M.pon(ce, { s: 0.95, y: 2 });
+  const cabezas = [...ce.querySelectorAll('.cab')];
+  const cu = M.icono('consejoUE', cards[2].ic); M.pon(cu, { s: 0.92, y: 4 });
+  const com = M.icono('comision', cards[3].ic); M.pon(com, { s: 0.9, y: 6 });
+  const banC = M.icono('banderaUEv5', cards[3].ic);
+  const bal = M.g(cards[4].ic);
+  const bce = M.icono('bce', cards[5].ic); M.pon(bce, { x: -14, s: 0.9 });
+  const moneda6 = M.icono('euroGrande', cards[5].ic);
+  return (t, d) => {
+    ap(rTit, { x: 640, y: 50 }, t, Math.max(0.1, tIns - 0.6), 'sube');
+    let activo = -1;
+    INST.forEach((it, i) => { if (t >= it.t - 0.1) activo = i; });
+    if (t > E.finVoz - 0.2) activo = -1;
+    cards.forEach((c, i) => {
+      const a = M.aparicion(t, c.t - 0.2, 0.6, 'pop');
+      const act = i === activo;
+      const real = M.ventana(t, c.t - 0.1, (INST[i + 1] ? INST[i + 1].t : E.finVoz) - 0.25, 0.3);
+      c.fondo.setAttribute('stroke', M.mezcla('#C3CAD6', UE, real));
+      c.fondo.setAttribute('stroke-width', (4 + 3 * real).toFixed(1));
+      M.ponAp(c.c, { x: POS[i][0], y: POS[i][1] + M.onda(t, 3.4, 2.5, i), s: 1 + 0.045 * real }, a);
+      M.pon(huecos[i], { x: POS[i][0], y: POS[i][1], o: M.e(t, 0.2 + i * 0.08, 0.4) * (t < c.t ? 1 : 0) });
+      if (act || i === 3) { /* chip de la ciudad: destaca Bruselas en la Comisión */ }
+    });
+    M.pon(cards[3].chip, { y: 108, s: 1 + 0.12 * M.ventana(t, tBru - 0.1, tBru + 0.9, 0.2) });
+    // Parlamento: se llenan los escaños al votar
+    const llenado = M.contador(t, tVot - 0.1, Math.max(1.0, t5 - tVot + 0.6), 0, hemi.asientos.length, 'inOutQuad');
+    hemi.asientos.forEach((s, k) => s.setAttribute('fill', k < llenado ? UE : C.grisClaro));
+    const caeP = M.p((t - tVot) % 1.6, 0, 0.9);
+    M.pon(pap, { x: 132, y: M.lerp(-50, -4, M.ease.inQuad(caeP)), s: 0.3, o: t > tVot && t < t5 + 1.2 && caeP < 1 ? 1 : 0 });
+    M.pon(urna, { x: 132, y: 6, s: 0.5, o: M.e(t, tVot - 0.3, 0.3) });
+    // Consejo Europeo: aparecen los jefes
+    cabezas.forEach((cb, k) => { const p = M.e(t, tJef - 0.3 + k * 0.1, 0.35, 'outBack'); const tr = cb.getAttribute('data-tr') || cb.getAttribute('transform'); cb.setAttribute('data-tr', tr); cb.setAttribute('transform', `${tr} scale(${Math.max(0.001, p).toFixed(3)})`); });
+    // Consejo de la UE: balanceo
+    M.pon(cu, { s: 0.92, y: 4 + M.onda(t, 1.2, 1.5) * M.ventana(t, tMin - 0.2, tMin + 2, 0.3) });
+    // Comisión: bandera ondea
+    M.pon(banC, { x: 22, y: -48, s: 0.42, sx: 1 + 0.06 * M.onda(t, 0.9, 1), r: M.onda(t, 1.8, 3) });
+    // Tribunal: balanza
+    bal.innerHTML = M.iconos.balanza({ inclina: 8 * M.onda(t, 2.4, 1) * (1 - 0.6 * M.ventana(t, tLey, tLey + 1.5, 0.3)) });
+    M.pon(bal, { s: 0.92, y: 4 });
+    // BCE: la moneda gira
+    const gi = Math.cos(t * 2.4);
+    M.pon(moneda6, { x: 30, y: 16 + M.onda(t, 1.6, 3), s: 0.52, sx: Math.max(0.08, Math.abs(gi)) * (1 + 0.15 * M.ventana(t, tEur - 0.1, tEur + 0.8, 0.2)) });
+  };
+});
+
+// ═════════════════ Escena 7: libre circulación y mercado único ═════════════════
+M.escena(7, (E) => {
+  const g = E.g;
+  const SUELO = 470;
+  const COLA = '#EADBC0', COLB = '#D7E1C4';
+  const cielo = M.g(g);
+  const nubes = [[150, 110, 1.0], [520, 80, 0.8], [880, 120, 1.15], [1220, 90, 0.9]].map(([x, y, s]) => ({ el: M.icono('nube', cielo), x, y, s }));
+  const tierraA = M.el('rect', { x: 0, y: SUELO, width: 640, height: 400, fill: COLA }, g);
+  const tierraB = M.el('rect', { x: 640, y: SUELO, width: 640, height: 400, fill: COLB }, g);
+  // paisaje
+  const fondo = M.g(g);
+  [['casa', 90, {}, 1.1], ['arbol', 230, {}, 1.0], ['tienda', 370, {}, 1.25], ['arbol', 500, {}, 0.85],
+    ['arbol', 760, { color: C.verdeOsc }, 0.9], ['casa', 1110, { color: '#E3E8D8', tejado: '#9AA3B5' }, 1.1], ['bloque', 990, { ancho: 96, alto: 170, color: '#DCE3EA' }, 1], ['arbol', 1230, {}, 1.05]]
+    .forEach(([n, x, o, s]) => { const el = M.icono(n, fondo, o); M.pon(el, { x, y: SUELO - (n === 'bloque' ? 50 : 48 * s) - (n === 'tienda' ? 2 * s : 0), s: n === 'bloque' ? 1 : s }); });
+  // carretera
+  M.el('rect', { x: 0, y: 540, width: 1280, height: 78, fill: '#80869A' }, g);
+  M.el('path', { d: 'M0,540 L1280,540 M0,618 L1280,618', stroke: K, 'stroke-width': 4 }, g);
+  M.el('path', { d: 'M0,579 L1280,579', stroke: '#fff', 'stroke-width': 5, 'stroke-dasharray': '34 26' }, g);
+  // frontera
+  const frontera = M.g(g);
+  M.el('path', { d: `M640,${SUELO} L640,538 M640,620 L640,800`, stroke: C.grisOsc, 'stroke-width': 5, 'stroke-dasharray': '12 10', 'stroke-linecap': 'round' }, frontera);
+  const cabina = M.icono('cabina', g); M.pon(cabina, { x: 560, y: SUELO - 46 + 4, s: 1.0 });
+  const barrera = M.g(g);
+  M.el('rect', { x: -6, y: -10, width: 150, height: 14, rx: 6, fill: '#fff', stroke: K, 'stroke-width': 3 }, barrera);
+  for (let i = 0; i < 4; i++) M.el('rect', { x: 14 + i * 34, y: -9, width: 16, height: 12, fill: C.grisOsc }, barrera);
+  M.el('circle', { r: 9, fill: C.grisOsc, stroke: K, 'stroke-width': 3 }, barrera);
+  const senal = M.g(g);
+  M.el('rect', { x: -4, y: 0, width: 8, height: 84, rx: 3, fill: C.grisOsc, stroke: K, 'stroke-width': 2.5 }, senal);
+  M.el('rect', { x: -66, y: -84, width: 132, height: 88, rx: 8, fill: UE, stroke: K, 'stroke-width': 3.5 }, senal);
+  for (let i = 0; i < 12; i++) { const a = (i * Math.PI) / 6; M.svg(senal, estrella5(23 * Math.sin(a), -54 - 23 * Math.cos(a), 4.4, ORO)); }
+  M.texto(senal, 'Francia', { tam: 24, peso: 900, color: C.blanco, y: -14 });
+  const pais = (txt) => M.rotulo(g, txt, { tam: 28, fondo: C.blanco, color: K, borde: C.gris, grosor: 3 });
+  const rA = pais('España'), rB = pais('Francia');
+  const coche = M.icono('coche', g, { color: '#7DA0CA' });
+  const coche2 = espejo('coche', g, { color: '#E8A0BF' });
+  const camion = espejo('camion', g, { color: '#D9C5A0' });
+  const cargas = [['fruta'], ['queso'], ['botella']].map(([p]) => M.icono('caja', g, { prod: p }));
+  const tVid = E.m('en tu vida'), tLib = E.m('libre circulación'), tSin = E.m('sin control'), tViv = E.m('vivir'), tEst = E.m('estudiar'), tTra = E.m('trabajar'), tMer = E.m('mercado único'), tPro = E.m('productos'), tUno = E.m('uno solo');
+  const rVid = M.rotulo(g, '¿En qué se nota en tu vida?', { tam: 44, fondo: K });
+  const rLib = M.rotulo(g, '1 · Libre circulación', { tam: 44, fondo: UE });
+  const rMer = M.rotulo(g, '2 · Mercado único', { tam: 44, fondo: UE });
+  const sinC = M.g(g); const rs = M.rotulo(sinC, 'Sin control', { tam: 30, fondo: C.blanco, color: K, borde: C.ok, grosor: 4 }); M.pon(M.marca(sinC, true, 20), { x: rs.ancho / 2 + 4, y: -rs.alto / 2 + 4 });
+  const OPC = [['casa', 'Vivir', tViv], ['libroAbierto', 'Estudiar', tEst], ['maletin', 'Trabajar', tTra]];
+  const opciones = OPC.map(([ic, txt]) => { const o = M.g(g); M.el('circle', { r: 66, fill: C.blanco, stroke: UE, 'stroke-width': 5 }, o); M.pon(M.icono(ic, o, ic === 'libroAbierto' ? { color: UE } : {}), { s: 0.92 }); M.texto(o, txt, { tam: 30, peso: 900, y: 96 }); return o; });
+  const rUno = M.rotulo(g, 'Casi como un solo país', { tam: 34, fondo: C.blanco, color: K, borde: UE, grosor: 4 });
+  return (t, d) => {
+    nubes.forEach((n, i) => M.pon(n.el, { x: ((n.x + t * (7 + i * 2)) % 1500) - 80, y: n.y, s: n.s }));
+    const une = M.e(t, tUno - 0.3, 1.0);
+    tierraA.setAttribute('fill', M.mezcla(COLA, '#E2DEC4', une));
+    tierraB.setAttribute('fill', M.mezcla(COLB, '#E2DEC4', une));
+    M.opacidad(frontera, 1 - une * 0.85);
+    M.pon(barrera, { x: 606, y: 528, r: -78 + M.onda(t, 3, 2) });
+    M.pon(senal, { x: 712, y: SUELO + 60 - 120 + 38 });
+    ap(rA, { x: 150, y: 505 }, t, 0.3, 'fundido');
+    ap(rB, { x: 1010, y: 505 }, t, 0.4, 'fundido');
+    // rótulos de cabecera
+    M.ponAp(rVid, { x: 640, y: 70, o: fuera(t, tLib - 0.3, 0.3) }, M.aparicion(t, 0.1, 0.5, 'sube'));
+    M.ponAp(rLib, { x: 640, y: 70, o: fuera(t, tMer - 0.3, 0.3) }, M.aparicion(t, tLib - 0.1, 0.5, 'sube'));
+    ap(rMer, { x: 640, y: 70 }, t, tMer - 0.1, 'sube');
+    // coche: cruza sin parar
+    // el coche cruza (y vuelve a cruzar) sin pararse en la frontera
+    const TC = 0.3, CICLO = 4.2, nCic = Math.max(1, Math.floor((tMer - 0.4 - 3.6 - TC) / CICLO) + 1);
+    const kc = Math.floor((t - TC) / CICLO), pc = kc >= 0 && kc < nCic ? M.p(t - TC - kc * CICLO, 0, 3.6) : 0;
+    M.pon(coche, { x: M.lerp(-120, 1420, pc), y: 566 + Math.abs(M.onda(t, 0.35, 2)), s: 1.5, o: pc > 0 && pc < 1 ? 1 : 0 });
+    const pc2 = M.p(t, tMer + 0.6, 3.8);
+    M.pon(coche2, { x: M.lerp(1420, -120, pc2), y: 566 + Math.abs(M.onda(t, 0.33, 2)), s: 1.5, o: pc2 > 0 && pc2 < 1 ? 1 : 0 });
+    M.ponAp(sinC, { x: 640, y: 300 + M.onda(t, 2.5, 3), o: fuera(t, tViv - 0.4, 0.3) }, M.aparicion(t, tSin - 0.1, 0.5));
+    const fueraOp = fuera(t, tMer - 0.4, 0.4);
+    opciones.forEach((o, i) => M.ponAp(o, { x: 380 + i * 260, y: 212 + M.onda(t, 3, 4, i), o: fueraOp }, M.aparicion(t, OPC[i][2] - 0.15, 0.5)));
+    // camión con mercancías: de Francia a España
+    const pt = M.p(t, tMer - 0.2, 4.6);
+    const xc = M.lerp(1440, -160, M.ease.inOutQuad(pt));
+    M.pon(camion, { x: xc, y: 560 + Math.abs(M.onda(t, 0.4, 1.5)), s: 1.9, o: pt > 0 && pt < 1 ? 1 : 0 });
+    // productos que saltan la frontera
+    cargas.forEach((c, i) => {
+      const t0 = tPro - 0.2 + i * 0.55; const p = M.e(t, t0, 1.3, 'inOutQuad');
+      const x = M.lerp(1000 - i * 70, 310 + i * 64, p), y = M.lerp(330, 505, p) - Math.sin(Math.PI * p) * 170;
+      M.pon(c, { x, y: y + (p >= 1 ? M.onda(t, 1.6, 1.5, i) : 0), s: M.lerp(1.25, 0.95, p), r: Math.sin(Math.PI * p) * -10, o: (t > t0 ? 1 : 0) * M.e(t, t0, 0.3) });
+    });
+    ap(rUno, { x: 640, y: 170 }, t, tUno - 0.2, 'sube');
+  };
+});
+
+// ═════════════════ Escena 8: el euro ═════════════════
+M.escena(8, (E) => {
+  const g = E.g;
+  const caja = { x: 500, y: 36, w: 740, h: 610 }; const fit = M.mapas.encajar(1000, 820, caja);
+  const cam = M.g(g);
+  const UEclaro = M.aclara(UE, 0.72);
+  const mapa = mapaEuropa(cam, { relleno: (p) => (p.ue ? UEclaro : C.tierraMapa) });
+  const P = mapa.paises;
+  const tEur = E.m('euro'), tCom = E.m('moneda común'), tMay = E.m('mayoría'), tNo = E.m('no todos');
+  const euroP = Object.values(P).filter((p) => p.euro).sort((a, b) => Math.hypot(a.et[0] - 420, a.et[1] - 520) - Math.hypot(b.et[0] - 420, b.et[1] - 520));
+  const sinEuro = Object.values(P).filter((p) => p.ue && !p.euro);
+  const contornos = sinEuro.map((p) => M.el('path', { d: p.d, fill: 'none', stroke: K, 'stroke-width': 3.5, 'stroke-dasharray': '7 6', 'stroke-linejoin': 'round' }, mapa.capa));
+  const monedasMapa = euroP.map((p) => ({ p, el: M.icono('euroGrande', mapa.capa) }));
+  const rTit = M.rotulo(g, '3 · El euro', { tam: 44, fondo: UE });
+  const brillo = M.g(g);
+  for (let i = 0; i < 12; i++) { const a = (i * Math.PI) / 6; M.el('path', { d: `M${(155 * Math.cos(a)).toFixed(1)},${(155 * Math.sin(a)).toFixed(1)} L${(195 * Math.cos(a)).toFixed(1)},${(195 * Math.sin(a)).toFixed(1)}`, stroke: ORO, 'stroke-width': 9, 'stroke-linecap': 'round', opacity: 0.55 }, brillo); }
+  const grande = M.icono('euroGrande', g);
+  const rCom = M.rotulo(g, 'La moneda común', { tam: 34, fondo: C.blanco, color: K, borde: UE, grosor: 4 });
+  const ley = M.g(g);
+  const n21 = M.texto(ley, '0', { tam: 60, peso: 900, color: UE, x: -100, y: 0, anchor: 'end' });
+  M.texto(ley, 'países con euro', { tam: 30, peso: 900, x: -86, anchor: 'start', y: 4 });
+  const ley2 = M.g(g);
+  M.el('rect', { x: -150, y: -18, width: 36, height: 36, rx: 8, fill: '#A9B0BD', stroke: K, 'stroke-width': 3, 'stroke-dasharray': '6 5' }, ley2);
+  M.texto(ley2, '6 de la UE, sin euro', { tam: 28, peso: 900, x: -100, anchor: 'start' });
+  return (t, d) => {
+    ap(rTit, { x: 260, y: 72 }, t, Math.min(0.15, tEur - 0.3), 'sube');
+    const a = M.aparicion(t, 0.1, 0.6, 'fundido');
+    M.pon(cam, { x: fit.x, y: fit.y, s: fit.s, o: a.o });
+    M.camara(mapa.ext, t, d, { hasta: 1.02, cx: 500, cy: 410 });
+    const T0 = Math.max(0.6, tMay - 0.5), T1 = Math.max(T0 + 0.8, tNo - 0.4);
+    let n = 0;
+    euroP.forEach((p, i) => { const t0 = M.lerp(T0, T1, i / (euroP.length - 1)); const c = M.e(t, t0, 0.35); if (t >= t0) n++; p.path.setAttribute('fill', M.mezcla(UEclaro, UE, c)); popPais(p, 1 + 0.15 * M.ventana(t, t0, t0 + 0.3, 0.15)); });
+    monedasMapa.forEach((m, i) => { const t0 = M.lerp(T0, T1, i / (euroP.length - 1)) + 0.15; M.pon(m.el, { x: m.p.et[0], y: m.p.et[1] + M.onda(t, 2, 3, i), s: (m.p.pequeno ? 0.26 : 0.36) * M.e(t, t0, 0.4, 'outBack'), o: t > t0 ? 1 : 0 }); });
+    const gris = M.e(t, tNo - 0.2, 0.4);
+    sinEuro.forEach((p, i) => { p.path.setAttribute('fill', M.mezcla(UEclaro, '#A9B0BD', gris)); popPais(p, 1 + 0.08 * M.ventana(t, tNo - 0.1 + i * 0.06, tNo + 0.5 + i * 0.06, 0.15)); M.opacidad(contornos[i], gris); });
+    // moneda gigante girando
+    const gi = Math.cos(t * 1.3);
+    ap(grande, { x: 260, y: 300 + M.onda(t, 2.5, 5), s: 2.9, sx: 0.15 + 0.85 * Math.abs(gi) }, t, 0.15, 'pop', 0.7);
+    M.pon(brillo, { x: 260, y: 300, r: t * 15, s: M.e(t, 0.4, 0.6, 'outBack'), o: M.e(t, 0.4, 0.5) });
+    ap(rCom, { x: 260, y: 485 }, t, tCom - 0.2, 'sube');
+    ap(ley, { x: 290, y: 560 }, t, T0, 'sube');
+    M.ponTexto(n21, String(n));
+    ap(ley2, { x: 280, y: 625 }, t, tNo - 0.1, 'sube');
+  };
+});
+
+// ═════════════════ Escena 9: ayudas y FEDER ═════════════════
+M.escena(9, (E) => {
+  const g = E.g;
+  M.el('rect', { x: 0, y: 600, width: 1280, height: 300, fill: C.arena }, g);
+  const tCua = E.m('cuarto'), tDin = E.m('dinero'), tZon = E.m('zonas'), tAva = E.m('avanzar'), tFed = E.m('FEDER'), tRet = E.m('Un reto'), tObr = E.m('una obra'), tCar = E.m('cartel'), tBan = E.m('bandera azul');
+  // ── fase A: el dinero llega a las zonas ──
+  const fA = M.g(g);
+  const banA = bandera(fA, 120, { grosor: 4 });
+  const bolsa = M.icono('bolsa', fA, { color: '#D9C5A0' });
+  const ZX = [560, 820, 1080];
+  const zonas = ZX.map((x, i) => {
+    const z = M.g(fA);
+    M.el('ellipse', { cx: 0, cy: 6, rx: 95, ry: 20, fill: '#D8C9A6', stroke: K, 'stroke-width': 3 }, z);
+    const casa = M.icono('casa', z, { color: '#E6DED0', tejado: '#A9A29A' }); M.pon(casa, { x: -45, y: -38, s: 0.9 });
+    const nuevo = M.icono(['colegio', 'sanidad', 'carretera'][i], z);
+    const flecha = M.icono('flechaArriba', z);
+    return { z, casa, nuevo, flecha, x };
+  });
+  const viajes = ZX.map(() => M.icono('euroGrande', fA));
+  const rCua = M.rotulo(fA, '4 · Ayudas de la UE', { tam: 44, fondo: UE });
+  const rZon = M.rotulo(fA, 'Para las zonas que lo necesitan', { tam: 32, fondo: C.blanco, color: K, borde: UE, grosor: 4 });
+  // ── fase B: la obra y el cartel ──
+  const fB = M.g(g);
+  const grua = M.icono('grua', fB);
+  const cable = M.el('path', { d: 'M0,0 L0,10', stroke: K, 'stroke-width': 3 }, fB);
+  const carga = M.icono('bloque', fB, { ancho: 60, alto: 40, color: '#DCE3EA' });
+  const edif = M.icono('obraEdificio', fB);
+  const conos = [M.icono('cono', fB), M.icono('cono', fB)];
+  const cartel = M.g(fB);
+  [-170, 170].forEach((x) => M.el('rect', { x: x - 9, y: 110, width: 18, height: 190, rx: 4, fill: C.grisOsc, stroke: K, 'stroke-width': 3.5 }, cartel));
+  M.el('rect', { x: -275, y: -130, width: 550, height: 250, rx: 14, fill: C.blanco, stroke: K, 'stroke-width': 5 }, cartel);
+  M.el('rect', { x: -275, y: 74, width: 550, height: 46, rx: 0, fill: M.aclara(UE, 0.85) }, cartel);
+  M.el('rect', { x: -275, y: -130, width: 550, height: 250, rx: 14, fill: 'none', stroke: K, 'stroke-width': 5 }, cartel);
+  const banB = bandera(cartel, 104, { grosor: 3 }); M.pon(banB.g, { x: -170, y: -28 });
+  M.texto(cartel, 'Financiado por', { tam: 30, peso: 800, x: 90, y: -52 });
+  M.texto(cartel, 'la Unión Europea', { tam: 34, peso: 900, x: 90, y: -10, color: UE });
+  M.el('path', { d: 'M-50,28 L230,28', stroke: C.grisClaro, 'stroke-width': 3 }, cartel);
+  const fondoTxt = M.texto(cartel, 'Fondo Europeo de Desarrollo Regional', { tam: 24, peso: 850, y: 97, color: K });
+  const rFed = M.rotulo(fB, 'FEDER', { tam: 46, fondo: UE, pad: 26 });
+  const nina = M.persona(fB, { ...M.gente(1, 12)[0], edad: 'nino', peinado: 'coleta', ropa: M.ROPA[7] });
+  const lupa = M.icono('lupaV5', fB);
+  const rRet = M.g(fB); const rr = M.rotulo(rRet, 'Reto: ¡busca este cartel!', { tam: 40, fondo: K, pad: 30 }); M.pon(M.icono('lupaV5', rRet), { x: -rr.ancho / 2 - 14, s: 0.6 });
+  return (t, d) => {
+    const salA = fuera(t, tFed - 0.6, 0.45);
+    M.pon(fA, { o: salA });
+    if (salA > 0) {
+      ap(rCua, { x: 640, y: 70 }, t, Math.max(0.1, tCua - 0.2), 'sube');
+      ap(banA.g, { x: 190, y: 250 + M.onda(t, 2.4, 3), r: M.onda(t, 2.2, 1.5) }, t, 0.25, 'pop');
+      ap(bolsa, { x: 330, y: 268 + M.onda(t, 1.8, 3), s: 1.25, r: M.onda(t, 1.2, 4) }, t, tDin - 0.2, 'pop');
+      ap(rZon, { x: 840, y: 180 }, t, tZon - 0.1, 'sube');
+      zonas.forEach((z, i) => {
+        const tLlega = tZon + 0.3 + i * 0.45 + 1.0;
+        ap(z.z, { x: z.x, y: 548, s: 1.3 }, t, 0.3 + i * 0.12, 'sube');
+        const crece = M.e(t, Math.max(tLlega, tAva - 0.3 + i * 0.2), 0.5, 'outBack');
+        M.pon(z.nuevo, { x: 48, y: -40, s: 0.85 * crece, o: crece > 0.01 ? 1 : 0 });
+        M.pon(z.casa, { x: -45, y: -38, s: 0.9 });
+        M.pon(z.flecha, { x: 0, y: -132 - M.e(t, tAva + i * 0.15, 0.6) * 20 + M.onda(t, 1.2, 4, i), s: 0.55 * M.e(t, tAva + i * 0.15, 0.5, 'outBack'), o: t > tAva + i * 0.15 ? 1 : 0 });
+        const p = M.e(t, tZon + 0.3 + i * 0.45, 1.0, 'inOutQuad');
+        const x0 = 330, y0 = 250, x1 = z.x + 50, y1 = 470;
+        M.pon(viajes[i], { x: M.lerp(x0, x1, p), y: M.lerp(y0, y1, p) - Math.sin(Math.PI * p) * 140, s: 0.55, sx: Math.abs(Math.cos(t * 4)) * 0.9 + 0.1, o: p > 0 && p < 1 ? 1 : 0 });
+      });
+    }
+    // fase B
+    const aB = M.aparicion(t, tFed - 0.45, 0.6, 'fundido');
+    M.pon(fB, { o: aB.o });
+    if (aB.o > 0) {
+      M.ponAp(cartel, { x: 400, y: 300 + M.onda(t, 3, 2) * 0, r: M.onda(t, 4, 0.5) }, M.aparicion(t, tFed - 0.45, 0.8, 'cae'));
+      M.pon(banB.g, { x: -170, y: -28, s: 1 + 0.12 * M.ventana(t, tBan - 0.1, tBan + 1.4, 0.3) });
+      ap(rFed, { x: 610, y: 166, r: 8 + M.onda(t, 1.5, 2) }, t, tFed - 0.05, 'pop', 0.6);
+      M.opacidad(fondoTxt, M.e(t, tFed + 0.3, 0.5));
+      M.pon(grua, { x: 905, y: 470, s: 2.6 });
+      const sube = 0.5 + 0.5 * Math.sin(t * 0.9);
+      const hx = 905 + 2.6 * 74, hy0 = 470 - 2.6 * 32;
+      const hy = M.lerp(430, 540, sube);
+      cable.setAttribute('d', `M${hx},${hy0} L${hx},${hy - 22}`);
+      M.pon(carga, { x: hx, y: hy + 6, s: 0.9, r: M.onda(t, 1.4, 3) });
+      M.pon(edif, { x: 1150, y: 526, s: 1.5 });
+      conos.forEach((c, i) => M.pon(c, { x: [790, 1020][i], y: 572, s: 0.62 }));
+      // la niña con la lupa busca el cartel
+      const aN = M.aparicion(t, tRet - 0.3, 0.6, 'sube');
+      M.ponAp(nina, { x: 690, y: 645 - 50 * 1.35, s: 1.35, ...bamboleo(t, 1) }, aN);
+      M.brazo(nina, 'd', -120 + M.onda(t, 1, 8));
+      const busca = M.e(t, tCar - 0.2, 1.4, 'inOutCubic');
+      const lx = M.lerp(735, 236, busca) + M.onda(t, 1.6, 14) * (1 - busca) + M.onda(t, 2.2, 8) * busca;
+      const ly = M.lerp(505, 278, busca) + M.onda(t, 1.3, 8);
+      M.ponAp(lupa, { x: lx, y: ly, s: M.lerp(0.75, 2.1, busca) }, aN);
+      ap(rRet, { x: 640, y: 70 }, t, tRet - 0.15, 'sube');
+    }
+  };
+});
+
+// ═════════════════ Escena 10: las cinco muñecas y repaso ═════════════════
+M.escena(10, (E) => {
+  const g = E.g;
+  const NIV = [[C.ayto, 'Municipio'], [C.prov, 'Provincia'], [C.ccaa, 'Comunidad'], [C.estado, 'Estado'], [UE, 'Unión Europea']];
+  const XS = [1085, 905, 705, 470, 200], SS = [1.05, 1.3, 1.55, 1.85, 2.25], BASE = 560;
+  const munecas = NIV.map(([c], i) => munecaPartida(g, c, i === 4 ? { texto: 'UE', tamTexto: 15 } : {}));
+  const nombres = NIV.map(([c, txt], i) => M.texto(g, txt, { tam: 28, peso: 900, color: i === 1 ? K : K }));
+  const tCin = E.m('cinco muñecas'), tRep = E.m('Repasamos'), tUno = E.m('uno:'), tDos = E.m('dos:'), tY = E.m('Y ahora');
+  const T0 = Math.max(1.0, tCin - 0.2), PASO = 0.8;
+  const TC = T0 + 4 * PASO;   // la muñeca cerrada pasa al centro…
+  const TB = Math.max(TC + 1.6, tDos - 0.9);   // …y después junto al título
+  const ideas = M.ideasClave(E, { titulo: 'Repasamos', y: 140, colores: [UE, UE, UE], tTitulo: tRep - 0.1 });
+  const banderita = M.icono('banderaUEv5', g);
+  const r5 = M.rotulo(g, '¡Las cinco muñecas!', { tam: 34, fondo: UE });
+  const r5b = M.rotulo(g, '5 muñecas en 1', { tam: 34, fondo: UE });
+  const rPreg = M.rotulo(g, '¡Ahora, unas preguntas!', { tam: 34, fondo: C.ok });
+  return (t, d) => {
+    // posición «base» de cada muñeca (pies en BASE)
+    const st = munecas.map((m, i) => ({ x: XS[i], s: SS[i], yp: BASE, o: 1, abre: 0 }));
+    for (let k = 0; k < 4; k++) {
+      const t0 = T0 + k * PASO;
+      const q = M.p(t, t0, PASO);
+      const ab = Math.min(M.e(t, t0, PASO * 0.3), 1 - M.e(t, t0 + PASO * 0.7, PASO * 0.3, 'outQuad'));
+      st[k + 1].abre = ab * 1.4;
+      // la pila k viaja hacia la muñeca k+1
+      const mv = M.e(t, t0 + PASO * 0.12, PASO * 0.6, 'inOutCubic');
+      if (q > 0) {
+        st[k].x = M.lerp(XS[k], XS[k + 1], mv);
+        st[k].s = M.lerp(SS[k], SS[k + 1] * 0.72, mv);
+        st[k].yp = M.lerp(BASE, BASE - SS[k + 1] * 8, mv) - Math.sin(Math.PI * mv) * (40 + SS[k + 1] * 40);
+      }
+      if (q >= 0.78) st[k].o = 0;
+      // las que ya están dentro siguen ocultas
+      for (let j = 0; j < k; j++) if (t >= T0 + j * PASO + PASO * 0.78) st[j].o = 0;
+    }
+    const vc = M.e(t, TC, 0.7, 'inOutCubic');
+    const va = M.e(t, TB, 0.8, 'inOutCubic');
+    munecas.forEach((m, i) => {
+      const a = M.aparicion(t, 0.05 + (4 - i) * 0.1, 0.5, 'sube');
+      let { x, s, yp, o, abre } = st[i];
+      let y = yp - 50 * s;
+      if (i === 4) { x = M.lerp(M.lerp(x, 640, vc), 395, va); y = M.lerp(M.lerp(y, 552 - 50 * 2.3, vc), 72, va); s = M.lerp(M.lerp(s, 2.3, vc), 0.9, va); }
+      m.abrir(abre);
+      M.ponAp(m.g, { x, y: y + M.onda(t, 2.4, 2.5, i), s, r: M.onda(t, 3, 1.5, i), o }, a);
+      const fueraN = i < 4 ? fuera(t, T0 + i * PASO + 0.1, 0.3) : fuera(t, TC - 0.1, 0.3);
+      M.ponAp(nombres[i], { x: XS[i], y: BASE + 36, o: fueraN }, M.aparicion(t, 0.3 + (4 - i) * 0.1, 0.5, 'fundido'));
+    });
+    M.ponAp(r5, { x: 640, y: 130, o: fuera(t, Math.min(tUno - 0.4, TB - 0.3), 0.3) }, M.aparicion(t, Math.max(0.2, tCin - 0.3), 0.5, 'sube'));
+    M.ponAp(r5b, { x: 640, y: 606, o: fuera(t, TB - 0.2, 0.3) }, M.aparicion(t, TC + 0.4, 0.5, 'sube'));
+    ap(banderita, { x: 885, y: 72, s: 0.85, r: M.onda(t, 2.4, 3) }, t, TB + 0.4, 'pop');
+    ideas(t);
+    ap(rPreg, { x: 640, y: 640 }, t, tY, 'sube');
+  };
+});
+
+M.cabecera({ iconos: ['munecaUE', 'banderaUEv5', 'euroGrande', 'mundo'], color: UE });
+M.iniciar();
+</script>
+</body>
+</html>

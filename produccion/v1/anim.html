@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Vídeo 1 · ¿Quién decide?</title>
+<link rel="stylesheet" href="../motor-video/comun.css">
+</head>
+<body>
+<script src="../motor-video/comun.js"></script>
+<script src="../motor-video/iconos.js"></script>
+<script src="../motor-video/mapas/espana.js"></script>
+<script src="../motor-video/datos/v1.js"></script>
+<script>
+'use strict';
+const C = M.C;
+const ap = (el, base, t, t0, tipo = 'pop', dur = 0.55) => M.ponAp(el, base, M.aparicion(t, t0, dur, tipo));
+/** Coloca una persona con los pies en (x, pies). */
+const ponP = (el, x, pies, s = 1, extra = {}) => M.pon(el, { x, y: pies - 50 * s, s, ...extra });
+const bamboleo = (t, i) => ({ dy: M.onda(t, 1.7 + (i % 3) * 0.23, 2.2, i * 1.3), r: M.onda(t, 2.9 + (i % 2) * 0.5, 1.3, i * 2.1) });
+const PARTIDOS = [
+  { tipo: 'parque', nombre: 'Los del Parque', icono: 'arbol', color: C.parque },
+  { tipo: 'aparcamiento', nombre: 'Los del Aparcamiento', icono: 'coche', color: C.aparcamiento },
+  { tipo: 'pista', nombre: 'Los de la Pista', icono: 'canasta', color: C.pista },
+];
+
+// ───────── Barrio con solar (escena 1) ─────────
+function barrio(padre) {
+  const g = M.g(padre);
+  const nubes = [[170, 105, 1.1], [600, 70, 0.85], [1040, 115, 1.2], [1350, 80, 0.9]].map(([x, y, s]) => ({ el: M.icono('nube', g), x, y, s }));
+  const BASE = 470;
+  const ed = [['bloque', 75, { ancho: 120, alto: 200, color: '#E9DCC8' }], ['casa', 200, { color: '#F0D9C4' }, 1.25], ['bloque', 315, { ancho: 96, alto: 150, color: '#DCE3EA' }],
+    ['bloque', 425, { ancho: 120, alto: 235, color: '#E3E8D8' }], ['casa', 548, { color: '#EADFD0', tejado: '#B8A08A' }, 1.05], ['bloque', 650, { ancho: 104, alto: 175, color: '#F0D9C4' }],
+    ['bloque', 765, { ancho: 128, alto: 250, color: '#DCE3EA' }], ['casa', 890, { color: '#E3E8D8', tejado: '#9AA3B5' }, 1.2], ['bloque', 1000, { ancho: 104, alto: 205, color: '#E9DCC8' }],
+    ['bloque', 1112, { ancho: 120, alto: 160, color: '#EADFD0' }], ['casa', 1225, { color: '#F0D9C4' }, 1.2]];
+  for (const [n, x, o, s] of ed) { const el = M.icono(n, g, o); if (n === 'casa') M.pon(el, { x, y: BASE - 48 * s, s }); else M.pon(el, { x, y: BASE - 50 }); }
+  M.el('rect', { x: -100, y: BASE, width: 1480, height: 400, fill: C.arena }, g);
+  M.el('path', { d: `M-100,${BASE} L1380,${BASE}`, stroke: C.arenaOsc, 'stroke-width': 6 }, g);
+  [345, 935].forEach((x) => M.pon(M.icono('farola', g), { x, y: BASE - 40, s: 1.1 }));
+  // solar
+  const solar = M.g(g);
+  M.el('rect', { x: 440, y: 498, width: 400, height: 122, rx: 18, fill: '#D8C29C' }, solar);
+  const r = M.azar(4);
+  for (let i = 0; i < 26; i++) M.el('ellipse', { cx: 460 + r() * 360, cy: 510 + r() * 100, rx: 3 + r() * 6, ry: 2 + r() * 3, fill: '#BFA67C' }, solar);
+  M.el('rect', { x: 440, y: 498, width: 400, height: 122, rx: 18, fill: 'none', stroke: C.tronco, 'stroke-width': 5, 'stroke-dasharray': '16 11' }, solar);
+  return { g, nubes, solar };
+}
+function burbuja(padre, icono, w, h, colaX, colaY, opcIcono = {}, sIcono = 1) {
+  const b = M.bocadillo(padre, { ancho: w, alto: h, colaX, colaY });
+  const ic = icono ? M.icono(icono, b.contenido, opcIcono) : null;
+  if (ic) M.pon(ic, { s: sIcono });
+  return { g: b, ic };
+}
+
+// ───────── Escena 1: el solar y tres ideas ─────────
+M.escena(1, (E) => {
+  const b = barrio(E.g);
+  const gente = M.gente(9, 21);
+  const pos = [[110, 650, 1.35], [205, 655, 1.35], [300, 648, 1.35], [560, 490, 1.0], [640, 486, 1.0], [720, 490, 1.0], [980, 650, 1.35], [1075, 655, 1.35], [1170, 648, 1.35]];
+  const pers = pos.map((p, i) => ({ el: M.persona(b.g, { ...gente[i], edad: i === 4 ? 'adulto' : gente[i].edad }), p }));
+  const bur = [
+    { ...burbuja(b.g, 'arbol', 170, 140, 20, 165, {}, 1.0), x: 205, y: 300, t: E.m('parque') },
+    { ...burbuja(b.g, 'coche', 170, 140, 0, 165, {}, 1.25), x: 640, y: 210, t: E.m('aparcamiento') },
+    { ...burbuja(b.g, 'canasta', 170, 140, -20, 165, {}, 1.0), x: 1075, y: 300, t: E.m('pista') },
+  ];
+  // copias de los iconos que se meten en el solar
+  const dentro = [['arbol', 590, 545, 1.0], ['coche', 645, 568, 1.15], ['canasta', 700, 545, 0.95]].map(([n, x, y, s]) => ({ el: M.icono(n, b.g), x, y, s }));
+  const cruz = M.marca(b.g, false, 34);
+  const rSolar = M.rotulo(E.g, 'Solar vacío', { tam: 34, fondo: C.tronco });
+  const rNo = M.rotulo(E.g, '¡No cabe todo!', { tam: 46, fondo: C.error });
+  const rQuien = M.rotulo(E.g, '¿Quién decide?', { tam: 70, fondo: C.tinta, pad: 44 });
+  const tSolar = E.m('solar vacío'), tNo = E.m('No cabe'), tQ = E.m('quién decide');
+  return (t, d) => {
+    M.camara(b.g, t, d, { hasta: 1.035, cy: 560 });
+    b.nubes.forEach((n, i) => M.pon(n.el, { x: ((n.x + t * (6 + i * 2)) % 1500) - 60, y: n.y, s: n.s }));
+    pers.forEach(({ el, p }, i) => ponP(el, p[0], p[1], p[2], bamboleo(t, i)));
+    bur.forEach((u, i) => {
+      const fuera = M.e(t, tNo + i * 0.12, 0.6, 'inCubic');
+      const a = M.aparicion(t, u.t, 0.6);
+      M.pon(u.g, { x: u.x, y: u.y + M.onda(t, 2.4, 4, i) + a.dy, s: a.s * (1 - 0.6 * fuera), o: a.o * (1 - fuera) });
+      if (u.ic) M.pon(u.ic, { s: (i === 1 ? 1.25 : 1) * (1 + 0.06 * M.onda(t, 0.9, 1, i)) });
+    });
+    dentro.forEach((c, i) => {
+      const p = M.e(t, tNo + i * 0.12, 0.7, 'outBack');
+      const de = bur[i];
+      const temblor = t > tNo + 0.8 ? M.onda(t, 0.35, 6, i * 2) : 0;
+      M.pon(c.el, { x: M.lerp(de.x, c.x, p), y: M.lerp(de.y, c.y, p), s: M.lerp(0.8, c.s, p), r: temblor, o: t >= tNo + i * 0.12 ? 1 : 0 });
+    });
+    ap(cruz, { x: 800, y: 515 }, t, tNo + 0.7, 'pop', 0.5);
+    M.ponAp(rSolar, { x: 640, y: 560, o: 1 - M.e(t, tNo - 0.3, 0.4) }, M.aparicion(t, tSolar, 0.5));
+    const sale = M.e(t, tQ - 0.2, 0.35);
+    M.ponAp(rNo, { x: 640, y: 85 - sale * 30, o: 1 - sale }, M.aparicion(t, tNo + 0.2, 0.5));
+    M.ponAp(rQuien, { x: 640, y: 92 + M.onda(t, 2, 3), s: 1 + 0.03 * M.onda(t, 1.1, 1) }, M.aparicion(t, tQ, 0.6));
+  };
+});
+
+// ───────── Escena 2: el rey y el dictador ─────────
+M.escena(2, (E) => {
+  const g = E.g;
+  M.el('rect', { x: 0, y: 560, width: 1280, height: 300, fill: C.arena }, g);
+  const sep = M.el('path', { d: 'M640,140 L640,540', stroke: C.gris, 'stroke-width': 4, 'stroke-dasharray': '2 14', 'stroke-linecap': 'round' }, g);
+  const o = M.g(g); M.el('circle', { r: 34, fill: C.crema, stroke: C.gris, 'stroke-width': 4 }, o); M.texto(o, 'o', { tam: 40, peso: 900, color: C.grisOsc, y: -3 });
+  // izquierda: trono con corona
+  const rayos = M.g(g);
+  for (let i = 0; i < 16; i++) { const a = (i * Math.PI) / 8; M.el('path', { d: `M${(70 * Math.cos(a)).toFixed(1)},${(70 * Math.sin(a)).toFixed(1)} L${(120 * Math.cos(a)).toFixed(1)},${(120 * Math.sin(a)).toFixed(1)}`, stroke: C.estrella, 'stroke-width': 9, 'stroke-linecap': 'round', opacity: 0.55 }, rayos); }
+  const trono = M.icono('trono', g);
+  const corona = M.icono('corona', g);
+  const rRey = M.rotulo(g, 'Un rey', { tam: 40, fondo: '#8E6C8A' });
+  const rTodo = M.rotulo(g, 'con todo el poder', { tam: 28, fondo: C.blanco, color: C.tinta, borde: '#8E6C8A' });
+  // derecha: dictador en tarima y fila que obedece
+  const tarima = M.g(g);
+  M.el('rect', { x: -95, y: 0, width: 190, height: 70, rx: 10, fill: '#B8A08A', stroke: C.tinta, 'stroke-width': 4 }, tarima);
+  M.el('rect', { x: -115, y: 70, width: 230, height: 18, rx: 6, fill: '#9C8670', stroke: C.tinta, 'stroke-width': 4 }, tarima);
+  const dict = M.persona(g, { uniforme: true, ropa: '#6B705C', piel: M.PIEL[1], serio: true, lleva: 'megafono', brazoD: -70 });
+  const rDict = M.rotulo(g, 'Un dictador', { tam: 40, fondo: '#6B705C' });
+  const fila = M.gente(5, 8, { ropa: '#A7AEBB' }).map((op, i) => ({ el: M.persona(g, { ...op, ropa: ['#A7AEBB', '#B5ADA3', '#9FA8B8', '#B9B1A6', '#A3ABA0'][i], serio: true }), x: 760 + i * 105 }));
+  const ordenes = [0, 1, 2].map((i) => M.flecha(g, { x1: 985 + (i - 1) * 40, y1: 400, x2: 830 + i * 150, y2: 488, curva: (i - 1) * -20, color: C.error, grosor: 6 }));
+  const marcas = [M.marca(g, true, 22), M.marca(g, false, 22)];
+  const rTit = M.rotulo(g, 'Decidía una sola persona', { tam: 46, fondo: C.tinta });
+  const rAntes = M.rotulo(g, 'Durante siglos…', { tam: 40, fondo: C.blanco, color: C.tinta, borde: C.gris });
+  const arena = M.g(g);
+  const tSola = E.m('una sola persona'), tRey = E.m('Un rey'), tDict = E.m('dictador'), tObe = E.m('obedecían'), tGus = E.m('les gustara');
+  return (t) => {
+    const fA = M.e(t, tSola - 0.3, 0.4);
+    M.ponAp(rAntes, { x: 640, y: 80, o: 1 - fA }, M.aparicion(t, 0.3, 0.5, 'fundido'));
+    const vuelta = Math.floor(t / 1.6), pa = M.p(t - vuelta * 1.6, 0, 1.3);
+    arena.innerHTML = M.iconos.relojArena({ p: pa });
+    M.ponAp(arena, { x: 640, y: 330, s: 2.2, r: t - vuelta * 1.6 > 1.3 ? M.e(t - vuelta * 1.6, 1.3, 0.3) * 180 : 0, o: 1 - M.e(t, tSola - 0.6, 0.4) }, M.aparicion(t, 0.2, 0.5));
+    M.ponAp(rTit, { x: 640, y: 80 }, M.aparicion(t, tSola, 0.6, 'sube'));
+    ap(trono, { x: 330, y: 400, s: 2.5 }, t, Math.min(tRey - 1.2, tSola + 0.3), 'sube');
+    const caida = M.e(t, tRey, 0.9, 'outBounce');
+    M.pon(corona, { x: 330, y: M.lerp(-80, 212, caida) + (caida >= 1 ? M.onda(t, 2.2, 4) : 0), s: 1.35, r: M.onda(t, 3, 3), o: t >= tRey ? 1 : 0 });
+    M.pon(rayos, { x: 330, y: 212, r: t * 12, s: M.e(t, tRey + 0.8, 0.6, 'outBack'), o: M.e(t, tRey + 0.8, 0.4) });
+    ap(rRey, { x: 330, y: 590 }, t, tRey + 0.3);
+    ap(rTodo, { x: 330, y: 645 }, t, tRey + 0.9);
+    M.pon(sep, { o: M.e(t, tDict - 0.6, 0.5) });
+    ap(o, { x: 640, y: 340 }, t, tDict - 0.5);
+    // dictador
+    const aD = M.aparicion(t, tDict, 0.6, 'sube');
+    M.ponAp(tarima, { x: 985, y: 330 }, aD);
+    M.ponAp(dict, { x: 985, y: 330 - 50 * 1.6, s: 1.6 }, aD);
+    M.brazo(dict, 'd', -70 + M.onda(t, 0.8, 14) * M.e(t, tObe - 0.4, 0.4));
+    ap(rDict, { x: 790, y: 205 }, t, tDict + 0.4);
+    const reverencia = M.e(t, tObe, 0.6);
+    fila.forEach((f, i) => { const a = M.aparicion(t, tDict + 0.5 + i * 0.12, 0.5, 'sube'); M.ponAp(f.el, { x: f.x, y: 640 - 50 * 1.15 + reverencia * 6, s: 1.15, r: reverencia * 9 + M.onda(t, 2.2, 1, i) }, a); });
+    ordenes.forEach((f, i) => f.poner(M.e(t, tObe - 0.3 + i * 0.15, 0.6)));
+    ap(marcas[0], { x: 865, y: 470 }, t, tGus, 'pop', 0.4);
+    ap(marcas[1], { x: 1075, y: 470 }, t, tGus + 0.35, 'pop', 0.4);
+  };
+});
+
+// ───────── Escena 3: democracia = poder del pueblo ─────────
+M.escena(3, (E) => {
+  const g = E.g;
+  M.el('rect', { x: 0, y: 590, width: 1280, height: 300, fill: C.arena }, g);
+  const gente = M.gente(9, 33).map((o, i) => ({ el: M.persona(g, { ...o, lleva: 'papeleta' }), x: 140 + i * 125 }));
+  const tCiu = E.m('decide la ciudadanía'), tGr = E.m('griego'), tDe = E.m('demos'), tKr = E.m('kratos'), tPo = E.m('El poder del pueblo');
+  const rTit = M.rotulo(g, 'Decide la ciudadanía', { tam: 48, fondo: C.tinta });
+  const rGr = M.rotulo(g, 'Viene del griego', { tam: 28, fondo: C.blanco, color: C.grisOsc, borde: C.gris, grosor: 3 });
+  const tarjeta = (icono, palabra, sig, ancho, color, opc = {}) => {
+    const t = M.g(g);
+    M.tarjeta(t, { ancho, alto: 210, fondo: C.blanco, trazo: color, grosor: 6, radio: 26 });
+    const ic = M.icono(icono, t, opc); M.pon(ic, { y: -45, s: 0.8 });
+    M.texto(t, palabra, { tam: 46, peso: 900, y: 30, color: C.tinta });
+    M.texto(t, sig, { tam: 28, peso: 800, y: 72, color: C.grisOsc });
+    return t;
+  };
+  const demos = tarjeta('grupo', 'demos', 'pueblo', 230, C.ayto);
+  const kratos = tarjeta('rayo', 'kratos', 'poder', 230, C.ccaa);
+  const demo = M.g(g);
+  M.tarjeta(demo, { ancho: 340, alto: 210, fondo: C.estado, trazo: C.tinta, grosor: 5, radio: 26 });
+  M.pon(M.icono('grupo', demo), { x: -40, y: -45, s: 0.7 }); M.pon(M.icono('rayo', demo), { x: 45, y: -45, s: 0.62 });
+  M.texto(demo, 'democracia', { tam: 48, peso: 900, y: 30, color: C.blanco });
+  M.texto(demo, 'el poder del pueblo', { tam: 28, peso: 800, y: 72, color: C.blanco });
+  const mas = M.texto(g, '+', { tam: 80, peso: 900 }), igual = M.texto(g, '=', { tam: 80, peso: 900 });
+  const urna = M.icono('urna', g, { papeletas: 8 });
+  return (t) => {
+    M.ponAp(urna, { x: 640, y: 300 + M.onda(t, 2.5, 5), s: 2.0, o: 1 - M.e(t, tDe - 0.5, 0.4) }, M.aparicion(t, 0.2, 0.6));
+    ap(rTit, { x: 640, y: 72 }, t, tCiu, 'sube');
+    ap(rGr, { x: 640, y: 142 }, t, tGr, 'fundido');
+    gente.forEach((p, i) => {
+      const a = M.aparicion(t, 0.05 + i * 0.06, 0.5, 'sube');
+      M.ponAp(p.el, { x: p.x, y: 650 - 50 * 1.3, s: 1.3, ...bamboleo(t, i) }, a);
+      const sube = M.e(t, tCiu + 0.2 + i * 0.13, 0.55, 'outBack');
+      M.brazo(p.el, 'd', M.lerp(-8, -158, sube) + M.onda(t, 0.9, 6 * sube, i));
+    });
+    ap(demos, { x: 270, y: 300 + M.onda(t, 3, 4) }, t, tDe);
+    ap(mas, { x: 430, y: 295 }, t, tDe + 0.4);
+    ap(kratos, { x: 590, y: 300 + M.onda(t, 3, 4, 1) }, t, tKr);
+    ap(igual, { x: 762, y: 295 }, t, tKr + 0.6);
+    ap(demo, { x: 975, y: 300 + M.onda(t, 3, 4, 2), s: 1 + 0.025 * M.onda(t, 1.2, 1) * M.e(t, tPo + 0.6, 0.4) }, t, Math.min(tPo, tKr + 1.2), 'pop', 0.7);
+  };
+});
+
+// ───────── Escena 4: España, 48 millones, representantes ─────────
+M.escena(4, (E) => {
+  const g = E.g;
+  const caja = { x: 30, y: 40, w: 700, h: 600 };
+  const fit = M.mapas.encajar(1000, 921, caja);
+  const cam = M.g(g);
+  const mapa = M.mapas.espana(cam, { modo: 'provincias', relleno: M.aclara(C.estado, 0.7), trazo: '#fff', grosor: 2 });
+  const contorno = M.el('path', { d: mapa.datos.contorno, fill: 'none', stroke: C.estado, 'stroke-width': 3, 'stroke-linejoin': 'round' }, mapa.g);
+  const MAD = mapa.punto('28');
+  // mini barrio en Madrid (unidades del mapa)
+  const mini = M.g(mapa.g);
+  M.el('rect', { x: -48, y: -6, width: 96, height: 40, rx: 8, fill: C.arena }, mini);
+  M.el('rect', { x: -20, y: 2, width: 40, height: 18, rx: 4, fill: '#D8C29C', stroke: C.tronco, 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, mini);
+  [[-38, 'bloque', { ancho: 70, alto: 150 }], [-14, 'casa', {}], [14, 'bloque', { ancho: 80, alto: 190, color: '#DCE3EA' }], [38, 'casa', { color: '#E3E8D8' }]].forEach(([x, n, o]) => M.pon(M.icono(n, mini, o), { x, y: -6 - 12, s: 0.24 }));
+  M.gente(4, 2).forEach((o, i) => M.pon(M.persona(mini, o), { x: -36 + i * 24 + (i > 1 ? 12 : 0), y: 22, s: 0.16 }));
+  // personitas dentro del contorno
+  const r = M.azar(48); const pts = [];
+  const D = mapa.datos;
+  let intentos = 0;
+  while (pts.length < 300 && intentos < 20000) {
+    intentos++;
+    const x = 20 + r() * 960, y = 10 + r() * 900;
+    const p = new DOMPoint(x, y);
+    if (contorno.isPointInFill(p) && Math.hypot(x - MAD[0], y - MAD[1]) > 28 && pts.every((q) => Math.hypot(q.x - x, q.y - y) > 22)) pts.push({ x, y, dist: Math.hypot(x - MAD[0], y - MAD[1]) });
+  }
+  pts.sort((a, b) => a.dist - b.dist);
+  const maxD = pts[pts.length - 1].dist;
+  const capaGente = M.g(mapa.g);
+  const glifos = pts.map((p, i) => {
+    const el = M.g(capaGente);
+    M.el('path', { d: 'M-7,14 L-7,4 Q-7,-2 0,-2 Q7,-2 7,4 L7,14Z', fill: M.ROPA[i % M.ROPA.length], stroke: C.tinta, 'stroke-width': 1.6 }, el);
+    M.el('circle', { cy: -8, r: 5.5, fill: M.PIEL[i % M.PIEL.length], stroke: C.tinta, 'stroke-width': 1.6 }, el);
+    return { el, ...p };
+  });
+  const elegidos = new Set(); for (let i = 7; i < glifos.length && elegidos.size < 16; i += 19) elegidos.add(i);
+  const estrellas = [...elegidos].map((i) => { const s = M.svg(mapa.g, M.estrellaPath(0, 0, 9, C.estrella, `stroke="${C.tinta}" stroke-width="1.6"`)); return { s, p: glifos[i] }; });
+  // panel derecho
+  const cont = M.g(g);
+  const num = M.texto(cont, '0', { tam: 76, peso: 900, color: C.estado });
+  const mas = M.texto(cont, 'más de', { tam: 34, peso: 800, color: C.grisOsc, y: -66 });
+  const pers = M.texto(cont, 'personas', { tam: 38, peso: 850, y: 62 });
+  const noCab = M.g(g);
+  M.tarjeta(noCab, { ancho: 430, alto: 120, trazo: C.error, grosor: 5 });
+  M.pon(M.icono('grupo', noCab), { x: -150, s: 0.75 });
+  M.pon(M.marca(noCab, false, 22), { x: -115, y: 28 });
+  M.texto(noCab, '¿Todos a la vez\na decidir? Imposible', { tam: 30, peso: 850, x: 50 });
+  const repr = M.g(g);
+  const rRep = M.rotulo(repr, 'Representantes', { tam: 44, fondo: C.tinta });
+  const filaRep = M.gente(5, 77).map((o, i) => { const p = M.persona(repr, o); const st = M.svg(repr, M.estrellaPath(0, 0, 13, C.estrella, `stroke="${C.tinta}" stroke-width="3"`)); return { p, st, x: -180 + i * 90 }; });
+  const urna = M.icono('urna', g, { papeletas: 3 });
+  const papel = M.icono('papeleta', g);
+  const rElec = M.rotulo(g, 'Elecciones', { tam: 36, fondo: C.estado });
+  const tEsp = E.m('España'), t48 = E.m('48 millones'), tNo = E.m('No podemos'), tEle = E.m('elegimos a unas'), tRep = E.m('representantes'), tVot = E.m('votando');
+  return (t, d) => {
+    // zoom: del barrio a toda España
+    const z = M.e(t, 0.3, Math.max(1.6, t48 - 0.5), 'inOutCubic');
+    const sMapa = M.lerp(fit.s * 7, fit.s, z);
+    const cx = M.lerp(640, fit.x + MAD[0] * fit.s, z), cy = M.lerp(380, fit.y + MAD[1] * fit.s, z);
+    M.pon(cam, { x: cx - MAD[0] * sMapa, y: cy - MAD[1] * sMapa, s: sMapa });
+    M.pon(mini, { x: MAD[0], y: MAD[1], s: M.lerp(1, 0.55, z), o: 1 - M.e(t, t48 + 0.5, 0.8) * 0.4 });
+    const tLlenar = t48 - 0.6;
+    const tenue = M.e(t, tEle + 0.3, 0.6);
+    glifos.forEach((q, i) => {
+      const t0 = tLlenar + (q.dist / maxD) * 2.2;
+      const a = M.aparicion(t, t0, 0.4);
+      const el = elegidos.has(i) ? M.e(t, tEle + 0.5 + (i % 7) * 0.08, 0.5, 'outBack') : 0;
+      M.pon(q.el, { x: q.x, y: q.y + M.onda(t, 1.4 + (i % 5) * 0.2, 1.2, i), s: a.s * (1 + el * 0.9), o: a.o * (elegidos.has(i) ? 1 : 1 - tenue * 0.72) });
+    });
+    estrellas.forEach((e, k) => M.pon(e.s, { x: e.p.x + 9, y: e.p.y - 22, s: M.e(t, tRep + k * 0.05, 0.4, 'outBack'), o: t > tRep ? 1 : 0 }));
+    // contador
+    const v = M.contador(t, t48 - 0.3, 2.2, 0, 48000000);
+    M.ponTexto(num, M.num(v));
+    M.ponAp(cont, { x: 1005, y: 170, o: 1 - M.e(t, tEle - 0.2, 0.5) * 0.0 }, M.aparicion(t, t48 - 0.5, 0.5));
+    M.ponAp(noCab, { x: 1005, y: 380, o: 1 - M.e(t, tEle, 0.4) }, M.aparicion(t, tNo, 0.5));
+    const aR = M.aparicion(t, tEle + 0.3, 0.6, 'sube');
+    M.ponAp(repr, { x: 1005, y: 372 }, aR);
+    M.ponAp(rRep, { y: -55 }, M.aparicion(t, tRep - 0.2, 0.5));
+    filaRep.forEach((f, i) => { ponP(f.p, f.x, 110, 0.9, bamboleo(t, i)); M.pon(f.st, { x: f.x + 22, y: 18 + 30, s: M.e(t, tRep + 0.3 + i * 0.1, 0.4, 'outBack') }); });
+    ap(urna, { x: 900, y: 582, s: 1.05 }, t, tVot - 0.2);
+    const cae = M.p(t, tVot + 0.3, 0.7);
+    M.pon(papel, { x: 900, y: M.lerp(440, 535, M.ease.inQuad(cae)), s: 0.6, sy: 1 - Math.max(0, cae - 0.75) * 4, o: cae > 0 && cae < 1 ? 1 : 0 });
+    ap(rElec, { x: 1075, y: 582 }, t, tVot + 0.2);
+  };
+});
+
+// ───────── Escena 5: votar = prestar el poder ─────────
+M.escena(5, (E) => {
+  const g = E.g;
+  M.el('rect', { x: 0, y: 600, width: 1280, height: 300, fill: C.arena }, g);
+  const urna = M.icono('urna', g, { papeletas: 4 });
+  const pap = [M.icono('papeleta', g), M.icono('papeleta', g)];
+  const chip = (icono, palabra, ok) => { const c = M.g(g); M.tarjeta(c, { ancho: 300, alto: 100, trazo: ok ? C.ok : C.error, grosor: 5 }); M.pon(M.icono(icono, c), { x: -95, s: 0.62 }); M.texto(c, palabra, { tam: 38, peso: 900, x: 30 }); c.marca = M.marca(c, ok, 24); M.pon(c.marca, { x: 150, y: -48 }); return c; };
+  const regalar = chip('regalo', 'Regalar', false), prestar = chip('rayo', 'Prestar', true);
+  const tit = M.rotulo(g, 'Votar = prestar el poder', { tam: 50, fondo: C.estado, pad: 34 });
+  const cal = M.g(g);
+  M.pon(M.icono('calendario', cal, { mes: 'AÑO', dia: '' }), { s: 1.7 });
+  const anio = M.texto(cal, '2026', { tam: 50, peso: 900, y: 27 });
+  const giro = M.g(g);
+  M.el('path', { d: 'M-128,0 A128,128 0 1 1 -90,90', fill: 'none', stroke: C.gris, 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-dasharray': '3 18' }, giro);
+  M.el('path', { d: 'M-108,84 L-86,106 L-78,74Z', fill: C.gris }, giro);
+  const rAnios = M.rotulo(g, 'Unos años después…', { tam: 32, fondo: C.blanco, color: C.tinta, borde: C.gris, grosor: 3 });
+  const gente = M.gente(4, 55);
+  const reps = [M.persona(g, gente[0]), M.persona(g, gente[1]), M.persona(g, gente[2]), M.persona(g, { ...gente[3], ropa: M.ROPA[7], peinado: 'rizado' })];
+  const tVot = E.m('votamos'), tReg = E.m('regalamos'), tPre = E.m('lo prestamos'), tAn = E.m('Unos años'), tVu = E.m('volvemos a votar'), tOt = E.m('otras personas');
+  return (t) => {
+    ap(urna, { x: 250, y: 440, s: 2.1 }, t, 0.1, 'sube');
+    [tVot, tVu].forEach((t0, i) => {
+      const c = M.p(t, t0, 0.8);
+      M.pon(pap[i], { x: 250, y: M.lerp(150, 365, M.ease.inQuad(c)), s: 1.1, sy: 1 - Math.max(0, c - 0.8) * 5, r: M.lerp(-18, 0, c), o: c > 0 && c < 1 ? 1 : 0 });
+    });
+    ap(regalar, { x: 640, y: 290 }, t, tReg - 0.2);
+    M.pon(regalar.marca, { x: 150, y: -48, s: M.e(t, tReg + 0.3, 0.4, 'outBack') });
+    ap(prestar, { x: 640, y: 430 }, t, tPre - 0.1);
+    M.pon(prestar.marca, { x: 150, y: -48, s: M.e(t, tPre + 0.3, 0.4, 'outBack') });
+    ap(tit, { x: 640, y: 92 }, t, tPre + 0.2, 'sube');
+    ap(cal, { x: 1010, y: 270, r: M.onda(t, 3, 2) }, t, tAn - 0.3);
+    M.ponTexto(anio, String(2026 + Math.floor(M.contador(t, tAn, Math.max(0.6, tVu - tAn - 0.2), 0, 4.99, 'lineal'))));
+    M.pon(giro, { x: 1010, y: 270, s: 0.9, r: t * 70, o: M.ventana(t, tAn, tVu + 0.4, 0.4) });
+    ap(rAnios, { x: 1010, y: 430 }, t, tAn, 'fundido');
+    // representantes: cambia uno
+    const cambio = M.e(t, tOt, 0.8, 'inOutCubic');
+    const llegan = M.e(t, tVu - 0.2, 0.5);
+    reps.forEach((p, i) => {
+      if (i < 3) { const sale = i === 1 ? cambio : 0; ponP(p, 905 + i * 105, 640 + sale * 30, 1.05, { o: (1 - sale) * llegan, ...bamboleo(t, i) }); }
+      else { const a = M.aparicion(t, tOt + 0.3, 0.6, 'cae'); ponP(p, 1010, 640, 1.05, { o: a.o, dy: a.dy, ...bamboleo(t, 1) }); }
+    });
+  };
+});
+
+// ───────── Escena 6: tres corros en el solar ─────────
+M.escena(6, (E) => {
+  const g = E.g;
+  M.el('rect', { x: 0, y: 545, width: 1280, height: 300, fill: C.arena }, g);
+  M.el('rect', { x: 40, y: 565, width: 1200, height: 92, rx: 22, fill: '#D8C29C', stroke: C.tronco, 'stroke-width': 4, 'stroke-dasharray': '14 10' }, g);
+  const COL = [215, 640, 1065];
+  const FRASES = ['Aire limpio y sitios para pasear', 'Llegar en coche al trabajo y a las tiendas', 'Que los jóvenes puedan hacer deporte'];
+  const PIENSA = [['mayores', 'Familias y mayores'], ['maletin', 'Quien va a trabajar'], ['balon', 'Gente joven']];
+  const tiempos = [
+    { b: E.m('Los del Parque'), f: E.m('aire limpio') },
+    { b: E.m('Los del Aparcamiento'), f: E.m('llegar en coche') },
+    { b: E.m('Los de la Pista'), f: E.m('jóvenes') },
+  ];
+  const tJun = E.m('se juntan'), tMalo = E.m('Ninguno es el malo'), tCada = E.m('Cada grupo'), tConc = E.m('personas concretas');
+  const gente = M.gente(9, 61);
+  const ini = [80, 1180, 400, 900, 620, 260, 1030, 520, 760];
+  const pers = gente.map((o, i) => ({ el: M.persona(g, o), x0: ini[i], col: i % 3, k: Math.floor(i / 3) }));
+  const pancartas = PARTIDOS.map((p) => {
+    const b = M.g(g);
+    M.el('rect', { x: -200, y: -42, width: 400, height: 84, rx: 22, fill: p.color, stroke: C.tinta, 'stroke-width': 4 }, b);
+    M.pon(M.icono('logo', b, { tipo: p.tipo }), { x: -158, s: 0.72 });
+    M.texto(b, p.nombre, { tam: 28, peso: 900, color: C.blanco, x: 34, max: 315 });
+    return b;
+  });
+  const bocas = FRASES.map((f, i) => {
+    const b = M.bocadillo(g, { ancho: 380, alto: 160, colaX: 0, colaY: 140 });
+    const frase = M.g(b.contenido);
+    const tf = M.texto(frase, f, { tam: 31, peso: 850, max: 330, y: 18 });
+    M.texto(frase, 'Lo más importante:', { tam: 24, peso: 800, color: C.grisOsc, y: 18 - tf.alto / 2 - 22 });
+    const piensa = M.g(b.contenido);
+    M.pon(M.icono(PIENSA[i][0], piensa), { y: -18, s: 0.8 });
+    M.texto(piensa, PIENSA[i][1], { tam: 28, peso: 850, y: 50 });
+    return { b, frase, piensa };
+  });
+  const rMalo = M.rotulo(g, 'Ninguno es «el malo»', { tam: 38, fondo: C.tinta });
+  const rJun = M.rotulo(g, 'Los que piensan parecido se juntan', { tam: 40, fondo: C.blanco, color: C.tinta, borde: C.gris, grosor: 4 });
+  const rSolar = M.rotulo(g, 'Volvemos al solar', { tam: 46, fondo: C.tronco });
+  const rCada = M.rotulo(g, 'Cada grupo lo ve a su manera', { tam: 38, fondo: C.tinta });
+  const ojos = [0, 1, 2].map(() => M.marca(g, true, 22));
+  return (t) => {
+    pers.forEach((p, i) => {
+      const xf = COL[p.col] + (p.k - 1) * 85;
+      const m = M.e(t, 0.3 + (i % 4) * 0.15, Math.max(1.2, tJun + 0.9 - 0.3), 'inOutCubic');
+      const andar = m > 0 && m < 1 ? Math.abs(M.onda(t, 0.5, 6, i)) : 0;
+      ponP(p.el, M.lerp(p.x0, xf, m), 640 - andar, 1.2, { r: m > 0 && m < 1 ? M.onda(t, 0.5, 4, i) : bamboleo(t, i).r, dy: m >= 1 ? bamboleo(t, i).dy : 0 });
+    });
+    pancartas.forEach((b, i) => ap(b, { x: COL[i], y: 92 + M.onda(t, 3, 3, i), r: M.onda(t, 4, 0.8, i) }, t, tiempos[i].b - 0.2, 'sube'));
+    const tenue = M.e(t, tMalo - 0.2, 0.5);
+    bocas.forEach((b, i) => {
+      M.ponAp(b.b, { x: COL[i], y: 330 + M.onda(t, 2.6, 4, i) }, M.aparicion(t, tiempos[i].f - 0.25, 0.55));
+      const cambia = M.e(t, tConc - 0.2, 0.6);
+      M.pon(b.frase, { o: 1 - cambia });
+      M.pon(b.piensa, { o: cambia, s: 0.8 + 0.2 * M.e(t, tConc - 0.2, 0.6, 'outBack') });
+    });
+    M.ponAp(rSolar, { x: 640, y: 120, o: 1 - M.e(t, tiempos[0].b - 0.5, 0.4) }, M.aparicion(t, 0.2, 0.5, 'sube'));
+    M.ponAp(rJun, { x: 640, y: 290 + M.onda(t, 3, 3), o: 1 - M.e(t, tiempos[0].f - 0.6, 0.4) }, M.aparicion(t, tJun - 0.4, 0.5, 'sube'));
+    M.ponAp(rMalo, { x: 640, y: 192, o: 1 - M.e(t, tCada - 0.25, 0.3) }, M.aparicion(t, tMalo, 0.5));
+    ap(rCada, { x: 640, y: 192 }, t, tCada);
+    ojos.forEach((o, i) => M.ponAp(o, { x: COL[i] + 185, y: 60, o: 1 - M.e(t, tCada, 0.4) }, M.aparicion(t, tMalo + 0.4 + i * 0.2, 0.4)));
+  };
+});
+
+// ───────── Escena 7: partido político ─────────
+M.escena(7, (E) => {
+  const g = E.g;
+  const X = [330, 640, 950];
+  const tPP = E.m('partido político'), tGr = E.m('en grande'), tGP = E.m('grupo de personas'), tId = E.m('comparten unas ideas'), tSe = E.m('se presentan');
+  const tCada = E.m('Cada partido'), tInt = E.m('intereses');
+  const TEMAS = [['bolsa', 'Impuestos', E.m('impuestos')], ['sanidad', 'Sanidad', E.m('sanidad')], ['hoja', 'Medio ambiente', E.m('medio ambiente')], ['casa', 'Vivienda', E.m('vivienda')], ['colegio', 'Colegios', E.m('vivienda') + 0.6], ['maletin', 'Trabajo', E.m('vivienda') + 1.1]];
+  const GRUPOS = [['tractor', 'El campo', E.m('campo'), 250], ['mayores', 'Personas mayores', E.m('personas mayores'), 500], ['fabrica', 'Empresas', E.m('empresa'), 780], ['alquiler', 'Alquiler', E.m('alquiler'), 1030]];
+  const tit = M.rotulo(g, 'Partido político', { tam: 50, fondo: C.tinta, pad: 34 });
+  // corros que se convierten en logos
+  const corros = PARTIDOS.map((p, c) => M.gente(3, 61 + c).map((o) => M.persona(g, o)));
+  const logos = PARTIDOS.map((p) => { const l = M.g(g); M.pon(M.icono('logo', l, { tipo: p.tipo }), { s: 1.15 }); M.texto(l, p.nombre, { tam: 26, peso: 850, y: 82, color: C.grisOsc }); return l; });
+  const fichas = [['grupo', 'Grupo de personas'], ['bombilla', 'Con ideas comunes'], ['urna', 'Se presenta a las elecciones']].map(([ic, txt]) => {
+    const f = M.g(g); M.tarjeta(f, { ancho: 340, alto: 180, trazo: C.tinta, grosor: 4 }); M.pon(M.icono(ic, f), { y: -34, s: 0.72 }); M.texto(f, txt, { tam: 29, peso: 850, y: 48, max: 300 }); return f; });
+  const temas = TEMAS.map(([ic, txt]) => { const f = M.g(g); M.el('circle', { r: 66, fill: C.blanco, stroke: C.gris, 'stroke-width': 4 }, f); M.pon(M.icono(ic, f), { s: 0.82 }); M.texto(f, txt, { tam: 26, peso: 850, y: 98, max: 190 }); return f; });
+  const grupos = GRUPOS.map(([ic, txt]) => { const f = M.g(g); M.el('circle', { r: 72, fill: C.blanco, stroke: C.tinta, 'stroke-width': 4 }, f); M.pon(M.icono(ic, f), { s: 0.9 }); M.texto(f, txt, { tam: 28, peso: 850, y: 104, max: 240 }); return f; });
+  const flechasT = X.map((x) => M.flecha(g, { x1: x, y1: 290, x2: x, y2: 330, color: C.gris, grosor: 6 }));
+  const flechasG = [[0, 0], [0, 1], [1, 2], [2, 3]].map(([l, k]) => M.flecha(g, { x1: X[l] + (k === 1 ? 40 : 0), y1: 290, x2: GRUPOS[k][3], y2: 372, color: PARTIDOS[l].color, grosor: 7, curva: k === 1 ? -30 : 0 }));
+  const rDef = M.rotulo(g, 'Defienden sobre todo a…', { tam: 32, fondo: C.blanco, color: C.tinta, borde: C.gris, grosor: 3 });
+  return (t) => {
+    ap(tit, { x: 640, y: 58 }, t, tPP - 0.2, 'sube');
+    const morph = M.e(t, tGr - 0.3, 0.7, 'inOutCubic');
+    corros.forEach((cr, c) => cr.forEach((p, k) => ponP(p, X[c] + (k - 1) * 60 * (1 - morph), 255, 0.95 * (1 - morph * 0.9), { o: 1 - morph, ...bamboleo(t, c * 3 + k) })));
+    logos.forEach((l, i) => ap(l, { x: X[i], y: 170 + M.onda(t, 3, 3, i) }, t, tGr - 0.1 + i * 0.12, 'pop', 0.6));
+    const fueraF = M.e(t, tCada - 0.4, 0.4);
+    fichas.forEach((f, i) => M.ponAp(f, { x: 265 + i * 375, y: 440, o: 1 - fueraF, dy: -fueraF * 20 }, M.aparicion(t, [tGP, tId, tSe][i], 0.55, 'sube')));
+    const fueraT = M.e(t, tInt - 0.3, 0.45);
+    temas.forEach((f, i) => M.ponAp(f, { x: 165 + i * 190, y: 410, o: 1 - fueraT, s: 1 + 0.1 * M.ventana(t, TEMAS[i][2], TEMAS[i][2] + 0.8, 0.25) }, M.aparicion(t, TEMAS[i][2] - 0.1, 0.5)));
+    flechasT.forEach((f, i) => { f.poner(M.e(t, tCada + i * 0.15, 0.5)); M.opacidad(f.g, (t > tCada ? 1 : 0) * (1 - fueraT)); });
+    ap(rDef, { x: 640, y: 630 }, t, tInt - 0.1, 'fundido');
+    grupos.forEach((f, i) => ap(f, { x: GRUPOS[i][3], y: 452 + M.onda(t, 3, 3, i) }, t, GRUPOS[i][2] - 0.1));
+    flechasG.forEach((f, i) => f.poner(M.e(t, [GRUPOS[0][2], GRUPOS[1][2], GRUPOS[2][2], GRUPOS[3][2]][i], 0.6)));
+  };
+});
+
+// ───────── Escena 8: la Constitución por encima ─────────
+M.escena(8, (E) => {
+  const g = E.g;
+  M.el('rect', { x: 0, y: 600, width: 1280, height: 300, fill: C.arena }, g);
+  const X = [250, 640, 1030];
+  const tTr = E.m('sin hacer trampas'), tRe = E.m('reglas del juego'), tEn = E.m('por encima'), tGa = E.m('quien gane'), tCo = E.m('Constitución'), tLey = E.m('ley más importante'), tNin = E.m('ninguna otra ley');
+  const grupos = PARTIDOS.map((p, c) => ({ logo: M.icono('logo', g, { tipo: p.tipo }), gente: M.gente(2, 90 + c).map((o) => M.persona(g, o)) }));
+  const rayos = M.g(g);
+  for (let i = 0; i < 18; i++) { const a = (i * Math.PI) / 9; M.el('path', { d: `M${(150 * Math.cos(a)).toFixed(1)},${(150 * Math.sin(a)).toFixed(1)} L${(200 * Math.cos(a)).toFixed(1)},${(200 * Math.sin(a)).toFixed(1)}`, stroke: C.estrella, 'stroke-width': 10, 'stroke-linecap': 'round', opacity: 0.6 }, rayos); }
+  const libro = M.icono('libro', g, { titulo: 'Constitución', subtitulo: '1978', ancho: 150, alto: 170, tamTitulo: 18, tamSub: 22, color: C.estado });
+  const silbato = M.icono('silbato', g);
+  const bajadas = X.map((x, i) => M.flecha(g, { x1: 640 + (i - 1) * 60, y1: 340, x2: x, y2: 420, color: C.estado, grosor: 6, curva: (i - 1) * -15, discontinua: true }));
+  const trofeo = M.icono('trofeo', g);
+  const rReg = M.rotulo(g, 'Reglas del juego', { tam: 38, fondo: C.estado });
+  const rEnc = M.rotulo(g, 'Por encima de todos', { tam: 30, fondo: C.blanco, color: C.tinta, borde: C.estado, grosor: 3 });
+  const rLey = M.rotulo(g, 'La ley más importante', { tam: 34, fondo: C.tinta });
+  const leyes = M.g(g);
+  [-70, 0, 70].forEach((x, i) => M.pon(M.icono('libro', leyes, { titulo: 'Ley', color: ['#9AA3B5', '#B5ADA3', '#A3ABA0'][i], tamTitulo: 16 }), { x, s: 0.62, r: (i - 1) * 4 }));
+  M.texto(leyes, 'Otras leyes', { tam: 28, peso: 850, y: 66 });
+  const contra = M.flecha(g, { x1: 1000, y1: 270, x2: 765, y2: 240, color: C.error, grosor: 7, curva: 20 });
+  const cruz = M.marca(g, false, 26);
+  return (t) => {
+    grupos.forEach((gr, c) => {
+      const a = M.aparicion(t, 0.1 + c * 0.15, 0.5, 'sube');
+      const gana = c === 1 ? M.e(t, tGa, 0.6, 'outBack') : 0;
+      M.ponAp(gr.logo, { x: X[c], y: 470 - gana * 10 + M.onda(t, 3, 3, c), s: 0.85 }, a);
+      gr.gente.forEach((p, k) => ponP(p, X[c] + (k ? 48 : -48), 640, 0.95, { o: a.o, ...bamboleo(t, c * 2 + k) }));
+    });
+    const cae = M.e(t, tRe - 0.2, 0.9, 'outBounce');
+    M.pon(libro, { x: 640, y: M.lerp(-160, 205, cae) + (cae >= 1 ? M.onda(t, 2.5, 4) : 0), s: 1.3, r: M.onda(t, 4, 1.2), o: t > tRe - 0.2 ? 1 : 0 });
+    M.ponAp(silbato, { x: 640, y: 230, s: 1.6, r: M.onda(t, 0.6, 10), o: 1 - M.e(t, tRe - 0.4, 0.3) }, M.aparicion(t, Math.max(0.3, tTr - 0.8), 0.5));
+    M.pon(rayos, { x: 640, y: 205, r: t * 10, s: M.e(t, tCo - 0.2, 0.6, 'outBack'), o: M.e(t, tCo - 0.2, 0.4) * 0.9 });
+    ap(rReg, { x: 300, y: 190 }, t, tRe + 0.4);
+    ap(rEnc, { x: 300, y: 262 }, t, tEn);
+    bajadas.forEach((f, i) => f.poner(M.e(t, tEn + 0.2 + i * 0.15, 0.6)));
+    ap(trofeo, { x: 720, y: 425, s: 0.6, r: M.onda(t, 1.5, 6) }, t, tGa + 0.2);
+    ap(rLey, { x: 990, y: 150 }, t, tLey);
+    ap(leyes, { x: 1085, y: 285 }, t, tNin - 0.2, 'sube');
+    contra.poner(M.e(t, tNin + 0.4, 0.6));
+    ap(cruz, { x: 885, y: 262 }, t, tNin + 1.0, 'pop', 0.45);
+  };
+});
+
+// ───────── Escena 9: 6 de diciembre, referéndum ─────────
+M.escena(9, (E) => {
+  const g = E.g;
+  const t6 = E.m('6 de diciembre'), tCole = E.m('no hay cole'), tDia = E.m('Día de la Constitución'), tNad = E.m('no se eligió'), tPreg = E.m('Se hizo una pregunta'), tApr = E.m('apruebas'), tRef = E.m('referéndum'), tCua = E.m('Cuando se vota');
+  const cal = M.calendarioMes(g, { anio: 1978, mes: 12, ancho: 350, color: C.error });
+  const dia6 = cal.dias[6];
+  const aro = M.el('circle', { r: cal.celda * 0.55, fill: 'none', stroke: C.ayto, 'stroke-width': 6 }, dia6.g);
+  const rDia = M.rotulo(g, 'Día de la Constitución', { tam: 34, fondo: C.estado });
+  const cole = M.g(g); M.pon(M.icono('colegio', cole), { s: 0.95 });
+  const cerrado = M.rotulo(cole, '¡Sin cole!', { tam: 26, fondo: C.ayto, color: C.tinta }); M.pon(cerrado, { y: 78 });
+  const nadie = M.g(g);
+  M.gente(3, 14).forEach((o, i) => M.pon(M.persona(nadie, o), { x: (i - 1) * 80, s: 1.05 }));
+  const cruzN = M.marca(nadie, false, 40); M.pon(cruzN, { x: 0, y: 0 });
+  M.texto(nadie, 'No se elige a nadie', { tam: 32, peso: 900, y: 92 });
+  const preg = M.g(g);
+  M.tarjeta(preg, { ancho: 470, alto: 130, trazo: C.estado, grosor: 6 });
+  M.texto(preg, '¿Apruebas esta Constitución?', { tam: 38, peso: 900, max: 420 });
+  const urna = M.icono('urna', g, { papeletas: 6 });
+  const si = M.g(g), no = M.g(g);
+  [[si, 'SÍ'], [no, 'NO']].forEach(([c, txt]) => { M.pon(M.icono('papeleta', c, { marca: false, icono: true }), { s: 1.3 }); M.texto(c, txt, { tam: 34, peso: 900 }); });
+  const voto = M.g(g); M.pon(M.icono('papeleta', voto, { marca: false, icono: true }), { s: 1.0 }); M.texto(voto, 'SÍ', { tam: 26, peso: 900 });
+  const rRef = M.rotulo(g, 'Referéndum = votar una pregunta', { tam: 44, fondo: C.tinta, pad: 30 });
+  const libroC = M.icono('libro', g, { titulo: 'Constitución', subtitulo: '1978', ancho: 150, alto: 170, tamTitulo: 18, tamSub: 22, color: C.estado });
+  return (t) => {
+    ap(cal.g, { x: 290, y: 320 }, t, 0.1, 'sube');
+    const pulso = M.e(t, t6, 0.5, 'outBack');
+    dia6.fondo.setAttribute('fill', t > t6 ? C.ayto : 'none');
+    M.pon(dia6.g, { x: dia6.x, y: dia6.y, s: 1 + 0.35 * M.ventana(t, t6, t6 + 1.2, 0.3) + 0.04 * M.onda(t, 1, 1) * (t > t6 ? 1 : 0) });
+    M.pon(aro, { s: pulso, o: pulso });
+    ap(rDia, { x: 290, y: 580 }, t, tDia - 0.2);
+    ap(cole, { x: 580, y: 430 + M.onda(t, 2.5, 3) }, t, tCole - 0.1);
+    M.ponAp(nadie, { x: 960, y: 300, o: 1 - M.e(t, tPreg - 0.3, 0.4) }, M.aparicion(t, tNad, 0.5));
+    M.pon(cruzN, { s: M.e(t, tNad + 0.4, 0.4, 'outBack') });
+    ap(preg, { x: 960, y: 175, r: M.onda(t, 4, 1) }, t, tPreg);
+    ap(urna, { x: 960, y: 470, s: 1.7 }, t, tPreg + 0.4, 'sube');
+    ap(si, { x: 790, y: 470 + M.onda(t, 2, 4) }, t, tApr + 0.2);
+    ap(no, { x: 1130, y: 470 + M.onda(t, 2, 4, 1) }, t, tApr + 0.4);
+    const c = M.p(t, tCua, 0.9);
+    M.pon(voto, { x: M.lerp(790, 960, M.ease.outQuad(c)), y: M.lerp(330, 405, M.ease.inQuad(c)), sy: 1 - Math.max(0, c - 0.8) * 5, o: c > 0 && c < 1 ? 1 : 0 });
+    ap(rRef, { x: 640, y: 66 }, t, tCua - 0.2, 'sube');
+    M.ponAp(libroC, { x: 960, y: 320 + M.onda(t, 2.5, 4), s: 1.3, r: M.onda(t, 4, 2), o: 1 - M.e(t, tNad - 0.5, 0.4) }, M.aparicion(t, 0.4, 0.6, 'sube'));
+  };
+});
+
+// ───────── Escena 10: valores y pluralismo ─────────
+M.icono && M.registrarIcono('opiniones', () => `<g transform="translate(-16 -8) scale(.55)">${M.iconos.hablar({ color: '#fff' })}</g><g transform="translate(18 14) scale(.55)">${M.iconos.hablar({ color: '#E8F3F8' })}</g>`);
+M.escena(10, (E) => {
+  const g = E.g;
+  const tEst = E.m('Estado democrático');
+  const PAL = [['Libertad', 'paloma', E.m('libertad'), 545, 225], ['Justicia', 'balanza', E.m('justicia'), 745, 315], ['Igualdad', 'igual', E.m('igualdad'), 545, 405], ['Pluralismo político', 'opiniones', E.m('pluralismo político'), 735, 495]];
+  const tPl = E.m('Pluralismo político es'), tMu = E.m('muchas ideas'), tNi = E.m('ninguno puede prohibir');
+  const caja = { x: 340, y: 110, w: 600, h: 520 }; const fit = M.mapas.encajar(1000, 921, caja);
+  const mapaG = M.g(g);
+  const mapa = M.mapas.espana(mapaG, { modo: 'contorno', vecinos: false, relleno: M.aclara(C.estado, 0.72), trazo: C.estado, grosor: 3.5, marCanarias: C.crema });
+  const libro = M.icono('libro', g, { titulo: 'Constitución', ancho: 150, alto: 170, tamTitulo: 18, color: C.estado });
+  const rEst = M.rotulo(g, 'Estado democrático', { tam: 46, fondo: C.estado });
+  const palabras = PAL.map(([txt, ic]) => {
+    const p = M.g(g); const w = M.medir(txt, 36, 900) + 120;
+    M.el('rect', { x: -w / 2, y: -38, width: w, height: 76, rx: 38, fill: C.blanco, stroke: C.tinta, 'stroke-width': 4 }, p);
+    M.el('circle', { cx: -w / 2 + 38, r: 30, fill: C.estado }, p);
+    M.pon(M.icono(ic, p, ic === 'igual' ? { color: C.estado } : { color: '#fff' }), { x: -w / 2 + 38, s: 0.5 });
+    M.texto(p, txt, { tam: 36, peso: 900, x: 30 });
+    return p;
+  });
+  const logos = PARTIDOS.map((p) => M.icono('logo', g, { tipo: p.tipo }));
+  const checks = PARTIDOS.map(() => M.marca(g, true, 20));
+  const rMu = M.rotulo(g, 'Muchas ideas, muchos partidos', { tam: 36, fondo: C.blanco, color: C.tinta, borde: C.estado, grosor: 4 });
+  const rNi = M.rotulo(g, 'Nadie puede prohibir a los demás', { tam: 36, fondo: C.tinta });
+  return (t, d) => {
+    const foco = M.e(t, tPl - 0.3, 0.8, 'inOutCubic');
+    M.pon(mapaG, { x: fit.x, y: fit.y, s: fit.s, o: 1 - foco * 0.9 });
+    M.pon(libro, { x: 150, y: 170, s: 0.95, r: M.onda(t, 3, 3), o: Math.min(M.e(t, 0.2, 0.5), 1 - foco) });
+    ap(rEst, { x: 640, y: 62 }, t, tEst - 0.2, 'sube');
+    palabras.forEach((p, i) => {
+      const [, , t0, x, y] = PAL[i];
+      const a = M.aparicion(t, t0 - 0.35, 0.9, 'cae');
+      if (i < 3) M.ponAp(p, { x, y: y + M.onda(t, 3, 3, i) - foco * 30, o: 1 - foco, s: 1 - foco * 0.15 }, a);
+      else M.ponAp(p, { x: M.lerp(x, 640, foco), y: M.lerp(y, 270, foco) + M.onda(t, 3, 3, i), s: 1 + foco * 0.3 }, a);
+    });
+    logos.forEach((l, i) => ap(l, { x: 430 + i * 210, y: 425 + M.onda(t, 2.5, 4, i), s: 1.0 }, t, tPl + 0.5 + i * 0.2));
+    checks.forEach((c, i) => ap(c, { x: 470 + i * 210, y: 385 }, t, tNi + 0.6 + i * 0.2, 'pop', 0.4));
+    M.ponAp(rMu, { x: 640, y: 570, o: 1 - M.e(t, tNi - 0.2, 0.3) }, M.aparicion(t, tMu, 0.5, 'sube'));
+    ap(rNi, { x: 640, y: 570 }, t, tNi, 'sube');
+  };
+});
+
+// ───────── Escena 11: derechos y deberes ─────────
+M.escena(11, (E) => {
+  const g = E.g;
+  const LAV = '#9D8EC7', NAR = '#F2A65A';
+  const Y0 = 62, H = 432;
+  const panel = (x, w, color, titulo) => { const p = M.g(g); M.el('rect', { x, y: Y0, width: w, height: H, rx: 28, fill: C.blanco, stroke: color, 'stroke-width': 6 }, p); const r = M.rotulo(p, titulo, { tam: 40, fondo: color }); M.pon(r, { x: x + w / 2, y: Y0 }); return p; };
+  const pD = panel(40, 730, LAV, 'Derechos'), pB = panel(800, 440, NAR, 'Deberes');
+  const DER = [['corazon', 'Vida', 'a la vida'], ['libroAbierto', 'Educación', 'educación'], ['sanidad', 'Sanidad', 'sanidad'], ['casa', 'Vivienda', 'vivienda'], ['pensar', 'Pensar\ny creer', 'pensar'], ['hablar', 'Expresarte', 'expresarte'], ['balanza', 'Igualdad\nante la ley', 'igual ante la ley']];
+  const DEB = [['mano', 'Participar', 'participar'], ['maletin', 'Trabajar', 'trabajar'], ['bolsa', 'Pagar\nimpuestos', 'pagar impuestos'], ['salvavidas', 'Ayudar en\nemergencias', 'emergencia']];
+  const ficha = ([ic, txt, clave], x, y) => { const f = M.g(g); M.pon(M.icono(ic, f), { y: -22, s: 0.76 }); M.texto(f, txt, { tam: 27, peso: 850, y: txt.includes('\n') ? 66 : 52 }); return { f, x, y, t: E.m(clave) }; };
+  const fd = DER.map((d, i) => ficha(d, 135 + (i % 4) * 180, i < 4 ? 185 : 365));
+  const fb = DEB.map((d, i) => ficha(d, 912 + (i % 2) * 216, i < 2 ? 185 : 365));
+  const def = (x, w, color, a, b) => { const c = M.g(g); M.tarjeta(c, { ancho: w, alto: 118, fondo: M.aclara(color, 0.8), trazo: color, grosor: 5 }); M.texto(c, a, { tam: 32, peso: 900, x: -w / 2 + 26, anchor: 'start', y: -30 }); M.texto(c, b, { tam: 27, peso: 800, x: -w / 2 + 26, anchor: 'start', y: b.includes('\n') ? 24 : 16 }); return c; };
+  const dDer = def(405, 730, LAV, 'Un derecho', 'es algo que te deben a ti.');
+  const dDeb = def(1020, 440, NAR, 'Un deber', 'es algo que tú debes\na los demás.');
+  const tDyD = E.m('derechos y deberes'), tDer = E.m('Un derecho es'), tDeb = E.m('Un deber');
+  return (t) => {
+    ap(pD, {}, t, tDyD - 0.6, 'fundido');
+    ap(pB, {}, t, tDyD + 0.1, 'fundido');
+    [...fd, ...fb].forEach((f, i) => ap(f.f, { x: f.x, y: f.y + M.onda(t, 3, 2.5, i), s: 1 + 0.14 * M.ventana(t, f.t, f.t + 0.9, 0.25) }, t, f.t - 0.15));
+    ap(dDer, { x: 405, y: 572 }, t, tDer - 0.1, 'sube');
+    ap(dDeb, { x: 1020, y: 572 }, t, tDeb - 0.1, 'sube');
+  };
+});
+
+// ───────── Escena 12: quién vota y cuatro elecciones ─────────
+M.escena(12, (E) => {
+  const g = E.g;
+  const tQ = E.m('Quién vota'), t18 = E.m('mayores de 18'), t4 = E.m('cuatro tipos'), t29 = E.m('29 de noviembre');
+  // [nombre, para qué, icono, color, momento, ángulo central (grados)]
+  const SEC = [
+    ['Municipales', 'ayuntamiento', 'ayuntamiento', C.ayto, E.m('municipales'), -90],
+    ['Autonómicas', 'comunidad', 'cupula', C.ccaa, E.m('autonómicas'), 0],
+    ['Generales', 'toda España', 'edificio', C.estado, E.m('generales'), 90],
+    ['Europeas', 'Unión Europea', 'banderaUE', C.ue, E.m('europeas'), 180],
+  ];
+  const CX = 860, CY = 348, R = 262, RI = 62;
+  const rQ = M.rotulo(g, '¿Quién vota?', { tam: 44, fondo: C.tinta });
+  const insignia = M.g(g);
+  M.el('circle', { r: 112, fill: C.tinta, stroke: C.blanco, 'stroke-width': 6 }, insignia);
+  M.texto(insignia, '18+', { tam: 96, peso: 900, color: C.blanco, y: 4 });
+  const t18txt = M.texto(g, 'Mayores de 18 años', { tam: 34, peso: 900 });
+  const dni = M.icono('dni', g);
+  const calG = M.g(g); M.pon(M.icono('calendario', calG, { mes: 'NOV', dia: 29, color: C.estado }), { s: 1.7 });
+  const rGen = M.rotulo(g, 'Generales\n29 de noviembre', { tam: 34, fondo: C.estado, pad: 28 });
+  const rueda = M.g(g);
+  const rad = (d) => (d * Math.PI) / 180;
+  const pt = (a, r) => `${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`;
+  const sectores = SEC.map(([nom, sub, ic, col, , am]) => {
+    const s = M.g(rueda);
+    const a0 = rad(am - 45 + 1.6), a1 = rad(am + 45 - 1.6);
+    const d = `M${pt(a0, RI + 6)} L${pt(a0, R)} A${R},${R} 0 0 1 ${pt(a1, R)} L${pt(a1, RI + 6)} A${RI + 6},${RI + 6} 0 0 0 ${pt(a0, RI + 6)}Z`;
+    M.el('path', { d, fill: col, stroke: C.tinta, 'stroke-width': 4, 'stroke-linejoin': 'round' }, s);
+    const gris = M.el('path', { d, fill: C.grisClaro, stroke: C.gris, 'stroke-width': 4, 'stroke-linejoin': 'round' }, s);
+    const et = M.g(g);
+    M.el('circle', { cy: -38, r: 42, fill: C.blanco, stroke: C.tinta, 'stroke-width': 3 }, et);
+    M.pon(M.icono(ic, et), { y: ic === 'banderaUE' ? -38 : -34, s: 0.6 });
+    const ct = col === C.ayto ? C.tinta : C.blanco;
+    M.texto(et, nom, { tam: 27, peso: 900, color: ct, y: 26 });
+    M.texto(et, sub, { tam: 23, peso: 800, color: ct, y: 55 });
+    return { s, et, gris, am: rad(am) };
+  });
+  const cubo = M.g(g);
+  M.el('circle', { r: RI, fill: C.tinta }, cubo);
+  M.texto(cubo, '4 tipos', { tam: 28, peso: 900, color: C.blanco });
+  return (t) => {
+    const fin = M.e(t, t29 - 0.2, 0.6, 'inOutCubic');
+    ap(rQ, { x: 250, y: 100 }, t, Math.max(0.1, tQ - 0.3), 'sube');
+    M.ponAp(insignia, { x: 250, y: 290 + M.onda(t, 2.5, 4), o: 1 - fin }, M.aparicion(t, t18 - 0.2, 0.6));
+    M.ponAp(t18txt, { x: 250, y: 450, o: 1 - fin }, M.aparicion(t, t18 + 0.2, 0.5, 'sube'));
+    M.ponAp(dni, { x: 250, y: 555, s: 1.1, r: M.onda(t, 3, 3), o: 1 - fin }, M.aparicion(t, t18 + 0.5, 0.5, 'sube'));
+    ap(calG, { x: 250, y: 300 + M.onda(t, 2.5, 4), r: M.onda(t, 3, 2) }, t, t29);
+    ap(rGen, { x: 250, y: 505 }, t, t29 + 0.4, 'sube');
+    const giro = M.onda(t, 8, 2.5);
+    M.ponAp(rueda, { x: CX, y: CY, r: giro }, M.aparicion(t, 0.3, 0.7));
+    ap(cubo, { x: CX, y: CY, s: 1 + 0.05 * M.ventana(t, t4, t4 + 1, 0.3) }, t, 0.5);
+    sectores.forEach((s, i) => {
+      const t0 = SEC[i][4];
+      const color = M.e(t, t0 - 0.15, 0.4);
+      const destaca = i === 2 ? fin : 0;
+      const off = destaca * 26;
+      M.opacidad(s.gris, 1 - color);
+      M.pon(s.s, { x: off * Math.cos(s.am), y: off * Math.sin(s.am), s: 1 + destaca * 0.03 + 0.05 * M.ventana(t, t0, t0 + 0.8, 0.25), o: i === 2 ? 1 : 1 - fin * 0.65 });
+      const am = s.am + (giro * Math.PI) / 180;
+      const rr = 168 + off;
+      const a = M.aparicion(t, t0 - 0.1, 0.5);
+      M.pon(s.et, { x: CX + rr * Math.cos(am), y: CY + rr * Math.sin(am), s: a.s * (1 + destaca * 0.08), o: a.o * (i === 2 ? 1 : 1 - fin * 0.65) });
+    });
+  };
+});
+
+// ───────── Escena 13: para y piensa + repaso ─────────
+M.escena(13, (E) => {
+  const g = E.g;
+  const fase1 = M.g(g);
+  M.el('rect', { x: 0, y: 560, width: 1280, height: 300, fill: C.arena }, fase1);
+  M.el('rect', { x: 330, y: 575, width: 620, height: 80, rx: 16, fill: '#D8C29C', stroke: C.tronco, 'stroke-width': 4, 'stroke-dasharray': '14 10' }, fase1);
+  const X = [250, 510, 770, 1030];
+  const gente = M.gente(4, 101).map((o) => M.persona(fase1, o));
+  const bur = [['arbol', 1], ['coche', 1.25], ['canasta', 1], [null, 1]].map(([ic, s], i) => burbuja(fase1, ic, 175, 145, 0, 165, {}, s));
+  const q = M.texto(bur[3].g.contenido, '?', { tam: 110, peso: 900, color: C.ccaa, y: 4 });
+  const cab = M.g(fase1);
+  M.pon(M.icono('pausa', cab), { x: -225, s: 0.85 });
+  M.texto(cab, 'Para y piensa', { tam: 54, peso: 900, x: 40 });
+  const tPara = E.m('Para el vídeo'), tCu = E.m('cuarto grupo'), tRep = E.m('Repasamos'), tY = E.m('Y ahora');
+  const ideas = M.ideasClave(E, { titulo: 'Repasamos', y: 150, colores: [C.estado, C.ayto, C.ccaa], tTitulo: tRep - 0.1 });
+  const rPreg = M.rotulo(g, '¡Ahora, unas preguntas!', { tam: 34, fondo: C.ok });
+  return (t) => {
+    const fuera = M.e(t, tRep - 0.6, 0.5);
+    M.pon(fase1, { o: 1 - fuera });
+    if (fuera < 1) {
+      ap(cab, { x: 640, y: 85 }, t, Math.max(0.1, tPara - 0.2), 'sube');
+      gente.forEach((p, i) => ponP(p, X[i], 650, 1.3, { ...bamboleo(t, i), o: i === 3 ? M.e(t, tCu - 0.6, 0.5) : 1 }));
+      bur.forEach((b, i) => ap(b.g, { x: X[i], y: 310 + M.onda(t, 2.4, 4, i), s: i === 3 ? 1 + 0.06 * M.onda(t, 0.8, 1) : 1 }, t, i < 3 ? 0.2 + i * 0.25 : tCu));
+      M.pon(q, { y: 4, r: M.onda(t, 1.2, 8) });
+    }
+    ideas(t);
+    ap(rPreg, { x: 640, y: 625 }, t, tY, 'sube');
+  };
+});
+
+M.cabecera({ iconos: ['urna', 'papeleta', 'libro', 'grupo'] });
+M.iniciar();
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2B2D42">
+<title>Actividad · Sociales 5.º · Un voto de confianza</title>
+<link rel="preload" href="../assets/fonts/nunito-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/css/estilos.css">
+</head>
+<body class="pagina-actividad">
+<header class="barra">
+  <a href="./" class="volver" id="volver"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>Actividades</a>
+  <span class="barra-tema">Sociales 5.º · Un voto de confianza</span>
+</header>
+<main class="contenedor">
+  <div class="cabecera-actividad">
+    <div class="insignia-video" id="insignia"></div>
+    <div class="textos">
+      <p class="antetitulo" id="antetitulo">Vídeo</p>
+      <h1 id="titulo">Preguntas</h1>
+      <p class="subtitulo" id="subtitulo"></p>
+    </div>
+    <a class="boton boton-secundario" id="ver-video" href="../leccion.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l12-7.2a1 1 0 0 0 0-1.72l-12-7.2A1 1 0 0 0 7 4.8z" fill="currentColor"/></svg>Ver el vídeo</a>
+  </div>
+  <div id="preguntas"></div>
+</main>
+<script src="../assets/js/motor.js"></script>
+<script>
+(function () {
+  var v = parseInt(new URLSearchParams(location.search).get('v'), 10);
+  if (!(v >= 1 && v <= 5)) v = 1;
+  document.getElementById('ver-video').href = '../leccion.html?v=' + v;
+  document.getElementById('insignia').innerHTML = Motor.iconos['video' + v] || '';
+  document.getElementById('antetitulo').textContent = 'Vídeo ' + v + ' de 5 · Preguntas';
+  Motor.cargarDatos().then(function (d) {
+    var g = d.guiones && d.guiones.videos.filter(function (x) { return x.id === v; })[0];
+    if (!g) return;
+    document.getElementById('titulo').textContent = g.titulo;
+    document.getElementById('subtitulo').textContent = g.subtitulo;
+    document.title = g.titulo + ' · Actividad · Sociales 5.º';
+  });
+  Motor.montar(document.getElementById('preguntas'), v, {
+    urlRepaso: function (n, s) { return '../leccion.html?v=' + n + '&t=' + Math.floor(s); },
+    alSiguienteVideo: function (n) { location.href = 'actividad.html?v=' + n; },
+    textoSiguiente: 'Siguiente actividad',
+    alInicio: function () { location.href = './'; }
+  });
+})();
+</script>
+</body>
+</html>
